@@ -1,0 +1,252 @@
+{
+  "agent": "product-manager",
+  "phase": "01-strategic-context",
+  "deliverables": {
+    "objective": "Tornar pagamentos invisíveis para o ecossistema ECP — qualquer app processa qualquer meio de pagamento com uma única chamada, sem conhecer gateways, sem duplicar código, sem depender de serviços externos para desenvolver.",
+    "key_results": [
+      {
+        "id": "KR-01",
+        "description": "Reduzir o tempo de integração de um novo app com pagamentos de semanas para horas",
+        "metric": "Tempo médio para um novo app do ecossistema processar seu primeiro pagamento via ECP Pay (do primeiro import ao pagamento confirmado em staging)",
+        "baseline": "2-3 semanas (integração direta com Asaas, incluindo tratamento de erros, webhooks e conciliação)",
+        "target": "< 4 horas (consumir API documentada do ECP Pay, testar em modo internal, validar callback)",
+        "deadline": "Q2 2026"
+      },
+      {
+        "id": "KR-02",
+        "description": "Centralizar 100% das transações do ecossistema em um único ledger observável",
+        "metric": "Percentual de transações financeiras do ecossistema ECP que passam pelo ECP Pay (vs. chamadas diretas a gateways)",
+        "baseline": "0% — cada app fala diretamente com o Asaas ou não tem pagamento implementado",
+        "target": "100% das transações de ecp-digital-bank, ecp-digital-bank-emps e ecp-food processadas via ECP Pay",
+        "deadline": "Q3 2026"
+      },
+      {
+        "id": "KR-03",
+        "description": "Garantir que a troca de gateway de pagamento não exija alteração em nenhum app consumidor",
+        "metric": "Número de linhas de código alteradas nos apps consumidores ao trocar de provider (ex: Asaas para Stripe)",
+        "baseline": "Indeterminado — atualmente uma troca de gateway exigiria refactor em cada app individualmente",
+        "target": "Zero linhas alteradas nos apps consumidores. Troca acontece exclusivamente no adapter do ECP Pay",
+        "deadline": "Q2 2026"
+      },
+      {
+        "id": "KR-04",
+        "description": "Eliminar dependência de serviços externos para desenvolvimento e testes do ecossistema",
+        "metric": "Percentual dos cenários de teste de pagamento que rodam sem conexão com internet (modo internal)",
+        "baseline": "0% — testes de pagamento dependem de sandbox do Asaas (lento, instável, requer credenciais)",
+        "target": "100% dos cenários de pagamento testáveis em modo internal com latência < 100ms por operação",
+        "deadline": "Q2 2026"
+      },
+      {
+        "id": "KR-05",
+        "description": "Atingir confiabilidade de produção medida por disponibilidade e entrega de eventos",
+        "metric": "Disponibilidade da API (uptime) e taxa de entrega de webhooks na primeira tentativa",
+        "baseline": "N/A — serviço novo, sem histórico",
+        "target": "API com 99.9% de disponibilidade e taxa de entrega de webhooks na 1ª tentativa > 99%",
+        "deadline": "Q3 2026"
+      }
+    ],
+    "opportunity_solution_tree": {
+      "objective": "Tornar pagamentos invisíveis para o ecossistema ECP — qualquer app processa qualquer meio de pagamento com uma única chamada, sem conhecer gateways, sem duplicar código, sem depender de serviços externos para desenvolver.",
+      "key_results": [
+        {
+          "id": "KR-01",
+          "description": "Reduzir o tempo de integração de um novo app com pagamentos de semanas para horas",
+          "opportunities": [
+            {
+              "id": "OPP-01",
+              "type": "pain",
+              "description": "Cada novo app precisa reimplementar toda a lógica de integração com o Asaas (auth, payloads, tratamento de erros, parsing de webhooks), gerando semanas de trabalho repetitivo",
+              "evidence": "Product briefing §1.1: 'cada app teria sua própria integração com Asaas, duplicando código, tratamento de erros e lógica de webhooks'"
+            },
+            {
+              "id": "OPP-02",
+              "type": "pain",
+              "description": "Desenvolvedores precisam entender a API proprietária de cada gateway (Asaas, Stripe) em vez de consumir um contrato único e padronizado",
+              "evidence": "Existência de múltiplos apps no ecossistema (bank, emps, food, futuros) que precisam de pagamentos com contratos distintos por gateway"
+            },
+            {
+              "id": "OPP-03",
+              "type": "need",
+              "description": "Novos desenvolvedores precisam de um caminho rápido para rodar o ecossistema completo e testar fluxos de pagamento sem configurações complexas de sandbox",
+              "evidence": "Product briefing §6.4: 'Novo dev clona o repo e testa pagamentos em minutos' como valor explícito do modo internal"
+            }
+          ]
+        },
+        {
+          "id": "KR-02",
+          "description": "Centralizar 100% das transações do ecossistema em um único ledger observável",
+          "opportunities": [
+            {
+              "id": "OPP-04",
+              "type": "pain",
+              "description": "Operadores financeiros não têm visão consolidada das transações do ecossistema — precisam acessar dashboards separados por gateway e cruzar dados manualmente",
+              "evidence": "Product briefing §4.1-4.2: necessidade explícita de dashboard unificado com filtros por app de origem, tipo e período"
+            },
+            {
+              "id": "OPP-05",
+              "type": "need",
+              "description": "O owner da plataforma precisa entender quanto cada app do ecossistema transaciona e qual a distribuição entre métodos de pagamento para tomar decisões de negócio",
+              "evidence": "Product briefing §4.1: 'Gráfico de transações por app de origem (bank, emps, food)' e §4.5: 'Resumo de taxas da plataforma'"
+            },
+            {
+              "id": "OPP-06",
+              "type": "pain",
+              "description": "Investigar falhas em transações exige acessar logs em múltiplos sistemas, sem correlação entre o pedido do app e o status no gateway",
+              "evidence": "Product briefing §4.2: necessidade de 'timeline de eventos (criada → processando → aprovada → notificada)' e §4.7: 'Log de erros com stack trace e contexto'"
+            }
+          ]
+        },
+        {
+          "id": "KR-03",
+          "description": "Garantir que a troca de gateway de pagamento não exija alteração em nenhum app consumidor",
+          "opportunities": [
+            {
+              "id": "OPP-07",
+              "type": "pain",
+              "description": "Se o Asaas mudar taxas, limites ou API, todos os apps que integram diretamente precisam ser atualizados simultaneamente — risco alto de downtime coordenado",
+              "evidence": "Product briefing §1.1: 'Se amanhã o Asaas mudar taxas ou sair do ar, a troca acontece em um único adapter — sem tocar nos apps'"
+            },
+            {
+              "id": "OPP-08",
+              "type": "desire",
+              "description": "O ecossistema quer liberdade para negociar com múltiplos gateways e escolher o melhor por custo/feature sem retrabalho nos apps",
+              "evidence": "Tech spec §3 (Provider Pattern): arquitetura explicitamente desenhada para suportar múltiplos adapters (Internal, Asaas, Stripe) com interface única"
+            },
+            {
+              "id": "OPP-09",
+              "type": "need",
+              "description": "Apps consumidores precisam de estabilidade contratual — o contrato de API que consomem não pode quebrar quando decisões de infraestrutura de pagamento mudam",
+              "evidence": "Tech spec regra 16: 'modo INTERNAL e EXTERNAL retornam exatamente o mesmo payload. Apps consumidores NUNCA sabem qual modo está ativo'"
+            }
+          ]
+        },
+        {
+          "id": "KR-04",
+          "description": "Eliminar dependência de serviços externos para desenvolvimento e testes do ecossistema",
+          "opportunities": [
+            {
+              "id": "OPP-10",
+              "type": "pain",
+              "description": "Testes automatizados de fluxos de pagamento dependem de sandbox do Asaas que é lento, instável e requer credenciais por desenvolvedor",
+              "evidence": "Product briefing §6.4: valor explícito de 'Vitest roda cenários completos de pagamento em milissegundos' no modo internal"
+            },
+            {
+              "id": "OPP-11",
+              "type": "pain",
+              "description": "Demos e apresentações de produto ficam reféns de conectividade e disponibilidade de sandboxes de terceiros",
+              "evidence": "Product briefing §6.4: 'Apresentar produto sem gastar em transações sandbox' como valor do modo internal"
+            },
+            {
+              "id": "OPP-12",
+              "type": "need",
+              "description": "Ambiente de staging precisa ser determinístico e controlável — comportamento previsível para validação de fluxos antes de ir para produção",
+              "evidence": "Product briefing §6.4: 'Staging: Ambiente de homologação 100% controlado e determinístico'"
+            }
+          ]
+        },
+        {
+          "id": "KR-05",
+          "description": "Atingir confiabilidade de produção medida por disponibilidade e entrega de eventos",
+          "opportunities": [
+            {
+              "id": "OPP-13",
+              "type": "need",
+              "description": "Apps do ecossistema precisam de garantia de que callbacks de pagamento serão entregues mesmo em cenários de falha temporária da rede ou do app receptor",
+              "evidence": "Product briefing §3.6: retry automático com backoff exponencial (30s, 2min, 10min) e RN-10"
+            },
+            {
+              "id": "OPP-14",
+              "type": "pain",
+              "description": "Sem idempotência e deduplicação, cenários de retry podem causar cobranças duplicadas ou processamento inconsistente",
+              "evidence": "Product briefing RN-01: 'Toda transação exige idempotency_key UUID. Reenvio retorna resultado existente' e Tech spec regra 19 (webhook idempotency)"
+            },
+            {
+              "id": "OPP-15",
+              "type": "need",
+              "description": "Operadores precisam identificar e agir rapidamente sobre falhas — replay de webhooks, reprocessamento e estorno precisam ser acessíveis sem intervenção de engenharia",
+              "evidence": "Product briefing §4.2: 'Ações manuais: reprocessar, estornar, cancelar' e §4.3: 'Replay manual (reenviar para o app)'"
+            }
+          ]
+        }
+      ]
+    },
+    "product_principles": [
+      {
+        "id": "PP-01",
+        "principle": "Contrato acima de implementação",
+        "rationale": "O valor do ECP Pay está na estabilidade do contrato de API que os apps consomem. Mudanças internas de provider, gateway ou infraestrutura NUNCA devem vazar para os consumidores. Se a interface muda, o produto falhou."
+      },
+      {
+        "id": "PP-02",
+        "principle": "Desenvolvimento sem dependências externas",
+        "rationale": "A velocidade do ecossistema não pode ser limitada por disponibilidade de sandboxes de terceiros. O modo internal não é um atalho — é uma feature de primeira classe que garante que qualquer dev roda o ecossistema completo com um único comando."
+      },
+      {
+        "id": "PP-03",
+        "principle": "Observabilidade como cidadão de primeira classe",
+        "rationale": "Transações financeiras exigem rastreabilidade total. Cada operação deve ser auditável, cada falha investigável e cada webhook rastreável — sem precisar pedir ajuda a um engenheiro."
+      },
+      {
+        "id": "PP-04",
+        "principle": "Segurança por design, não por checklist",
+        "rationale": "Dados sensíveis (números de cartão, CVV) nunca são armazenados. Tokens substituem dados reais. Service API keys isolam apps. Rate limiting protege contra abuso. A segurança está na arquitetura, não em um passo extra."
+      },
+      {
+        "id": "PP-05",
+        "principle": "Operacional antes de bonito",
+        "rationale": "O painel admin é uma ferramenta de trabalho para operadores, não um app consumer-facing. Prioriza densidade de informação, filtros poderosos e ações rápidas sobre estética. Inspiração: Stripe Dashboard, não landing pages."
+      },
+      {
+        "id": "PP-06",
+        "principle": "Idempotência é inegociável",
+        "rationale": "Em sistemas financeiros, processar uma operação duas vezes é pior do que não processar. Toda mutação deve ser idempotente por design — transações, webhooks, callbacks. Retry seguro é requisito, não feature."
+      }
+    ]
+  },
+  "open_questions": [
+    {
+      "id": "OQ-01",
+      "question": "Qual o volume transacional esperado no primeiro trimestre de operação? Isso impacta decisões de infraestrutura e o target de disponibilidade.",
+      "impact": "KR-05 — o target de 99.9% pode ser over/under-engineering dependendo do volume"
+    },
+    {
+      "id": "OQ-02",
+      "question": "Existe previsão de quando o adapter de Stripe será necessário, ou Asaas é suficiente para o roadmap de 2026?",
+      "impact": "KR-03 — a prioridade da portabilidade depende de quando a troca será real"
+    },
+    {
+      "id": "OQ-03",
+      "question": "O split de pagamento será usado apenas no ecp-food ou há demanda em outros apps? Isso define se split é MVP ou fase posterior.",
+      "impact": "OPP-05 — distribuição de receita entre apps depende de quais apps usam split"
+    },
+    {
+      "id": "OQ-04",
+      "question": "Como será medido o baseline de KR-01 (tempo de integração)? Usar o tempo de integração do ecp-food com Asaas como referência?",
+      "impact": "KR-01 — sem baseline medido, o KR perde comparabilidade"
+    }
+  ],
+  "assumptions": [
+    {
+      "id": "AS-01",
+      "assumption": "Os três apps iniciais (bank, emps, food) migrarão para consumir ECP Pay em vez de integrar diretamente com gateways",
+      "risk": "Se algum app optar por manter integração direta, KR-02 (100% centralização) não será atingido"
+    },
+    {
+      "id": "AS-02",
+      "assumption": "O modo internal terá paridade funcional completa com o modo Asaas no contrato de API — apenas o comportamento interno difere",
+      "risk": "Se houver divergência de contrato entre modos, apps terão comportamento diferente em dev vs. produção, minando confiança"
+    },
+    {
+      "id": "AS-03",
+      "assumption": "O volume transacional no primeiro ano é compatível com SQLite (centenas de milhares de transações, não milhões por dia)",
+      "risk": "Se o volume crescer além do esperado, a escolha de SQLite pode se tornar gargalo antes do previsto"
+    },
+    {
+      "id": "AS-04",
+      "assumption": "Asaas será o único gateway de produção na v1. Stripe é previsto na arquitetura mas não implementado no MVP",
+      "risk": "Baixo — a interface de provider garante extensibilidade mesmo se Stripe for adiado"
+    }
+  ],
+  "next_hitl": 1,
+  "recommendation": "avançar"
+}

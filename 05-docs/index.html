@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ECP Pay — Documentação</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="sidebar-logo">
+      <span class="logo-icon">&#x2B21;</span>
+      ECP Pay docs
+    </div>
+    <ul class="sidebar-nav">
+      <li><a href="index.html" class="active"><span class="nav-icon">&#x25C9;</span> Visão Geral</a></li>
+      <li class="sidebar-section-title">Fases do Produto</li>
+      <li><a href="fase-01.html"><span class="nav-icon">01</span> Contexto Estratégico</a></li>
+      <li><a href="fase-02.html"><span class="nav-icon">02</span> Product Discovery</a></li>
+      <li><a href="fase-03.html"><span class="nav-icon">03</span> Product Delivery</a></li>
+      <li><a href="fase-04.html"><span class="nav-icon">04</span> Operação</a></li>
+    </ul>
+    <div class="sidebar-footer">
+      <a href="dashboard/index.html">&#x1F4CA; Dashboard App</a>
+    </div>
+  </aside>
+
+  <!-- Topbar -->
+  <header class="topbar">
+    <div class="topbar-title">ECP Pay &mdash; Documentação do Produto</div>
+    <div class="topbar-meta">
+      <span><span class="status-dot green"></span> Todas as fases aprovadas</span>
+      <span>v1.0</span>
+    </div>
+  </header>
+
+  <!-- Content -->
+  <main class="content">
+    <h1>ECP Pay</h1>
+    <p class="subtitle">Documentação completa das 4 fases do ciclo de produto &mdash; do contexto estratégico à operação.</p>
+
+    <!-- Product Summary -->
+    <section class="section">
+      <div class="artifact-card highlighted">
+        <div class="artifact-label">Visão do Produto</div>
+        <div class="artifact-title">Tornar pagamentos invisíveis para o ecossistema ECP</div>
+        <div class="artifact-body">
+          <p>Qualquer app processa qualquer meio de pagamento com uma única chamada, sem conhecer gateways, sem duplicar código, sem depender de serviços externos para desenvolver.</p>
+          <p>O ECP Pay centraliza Pix, Cartão e Boleto em uma API unificada com Provider Pattern &mdash; permitindo que o ecossistema inteiro (bank, emps, food) integre pagamentos em horas, troque de gateway sem tocar nos apps e teste tudo offline com o modo Internal.</p>
+        </div>
+      </div>
+
+      <div class="two-col" style="margin-top: 20px;">
+        <div class="artifact-card">
+          <div class="artifact-label">Métrica-Chave</div>
+          <div class="artifact-title" style="color: var(--lime);">Centralização de Pagamentos</div>
+          <div class="artifact-body">
+            <strong>100% das transações via ECP Pay</strong><br>
+            Percentual de transações financeiras do ecossistema ECP que passam pelo ECP Pay em vez de chamadas diretas a gateways. Meta: 100% de bank, emps e food processadas via API unificada.
+          </div>
+        </div>
+        <div class="artifact-card">
+          <div class="artifact-label">Usuários-Alvo</div>
+          <div class="artifact-title">3 Personas do Ecossistema</div>
+          <div class="artifact-body">
+            <strong>Desenvolvedores ECP</strong> &mdash; Integram pagamentos nos apps via API unificada.<br>
+            <strong>Operadores Financeiros</strong> &mdash; Monitoram transações, webhooks e saúde do sistema via painel admin.<br>
+            <strong>Super Admin</strong> &mdash; Configura providers, feature flags, registra apps e gerencia o ecossistema.
+          </div>
+        </div>
+      </div>
+
+      <div class="stat-grid" style="margin-top: 20px;">
+        <div class="stat-card">
+          <div class="stat-value">29</div>
+          <div class="stat-label">Endpoints</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value">10</div>
+          <div class="stat-label">Tabelas</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value">12</div>
+          <div class="stat-label">HITLs Aprovados</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value">3</div>
+          <div class="stat-label">Épicos</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value">82/100</div>
+          <div class="stat-label">QA Score</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Timeline -->
+    <h2>Linha do Tempo das Fases</h2>
+    <section class="section">
+      <div class="timeline">
+        <div class="timeline-item">
+          <div class="timeline-phase">Fase 01</div>
+          <div class="timeline-title">Contexto Estratégico <span class="badge approved">HITL #1 Aprovado</span></div>
+          <div class="timeline-desc">OKRs, 5 Key Results mensuráveis, 6 princípios de produto, OST com 15 oportunidades mapeadas a 5 KRs, 4 questões abertas e 4 suposições.</div>
+        </div>
+        <div class="timeline-item">
+          <div class="timeline-phase">Fase 02</div>
+          <div class="timeline-title">Product Discovery <span class="badge approved">HITLs #2-#6 Aprovados</span></div>
+          <div class="timeline-desc">9 oportunidades priorizadas via WSJF em 3 pilares, 7 hipóteses com 26 assumptions, protótipos low-fi e high-fi, 3 épicos, 13 features, 29 user stories com BDD, avaliação dos 4 riscos de Cagan.</div>
+        </div>
+        <div class="timeline-item">
+          <div class="timeline-phase">Fase 03</div>
+          <div class="timeline-title">Product Delivery <span class="badge approved">HITLs #7-#10 Aprovados</span></div>
+          <div class="timeline-desc">DDD com 6 bounded contexts, 6 ADRs, API Fastify com 29 endpoints (9 payment + 20 admin), SQLite com 10 tabelas, React SPA com 8 páginas, QA score 82/100.</div>
+        </div>
+        <div class="timeline-item">
+          <div class="timeline-phase">Fase 04</div>
+          <div class="timeline-title">Operação <span class="badge approved">HITLs #11-#12 Aprovados</span></div>
+          <div class="timeline-desc">Deploy strategy local, 3 SLOs definidos, DORA metrics, 3 experimentos A/B planejados, endpoints de monitoramento.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Quick Links -->
+    <h2>Acesso Rápido</h2>
+    <section class="section">
+      <div class="quick-links">
+        <a href="fase-01.html" class="quick-link">
+          <span class="ql-icon">&#x1F3AF;</span> Fase 01 &mdash; Estratégia
+        </a>
+        <a href="fase-02.html" class="quick-link">
+          <span class="ql-icon">&#x1F50D;</span> Fase 02 &mdash; Discovery
+        </a>
+        <a href="fase-03.html" class="quick-link">
+          <span class="ql-icon">&#x2699;</span> Fase 03 &mdash; Delivery
+        </a>
+        <a href="fase-04.html" class="quick-link">
+          <span class="ql-icon">&#x1F680;</span> Fase 04 &mdash; Operação
+        </a>
+        <a href="dashboard/index.html" class="quick-link">
+          <span class="ql-icon">&#x1F4CA;</span> Dashboard App
+        </a>
+      </div>
+    </section>
+
+    <!-- Phase summaries -->
+    <h2>Resumo das Fases</h2>
+
+    <div class="artifact-card">
+      <div class="artifact-label">Fase 01 &mdash; Contexto Estratégico</div>
+      <div class="artifact-title">OKRs, Princípios e Opportunity Solution Tree</div>
+      <div class="artifact-body">
+        <p>Definição do objetivo estratégico: <strong>"Tornar pagamentos invisíveis para o ecossistema ECP"</strong>, com 5 Key Results mensuráveis. OST com 15 oportunidades mapeadas a 5 KRs. 6 princípios de produto guiam todas as decisões: contrato acima de implementação, desenvolvimento sem dependências externas, observabilidade como cidadão de primeira classe.</p>
+      </div>
+      <div class="artifact-meta">
+        <span class="file-ref">phase-01-output.json</span>
+      </div>
+    </div>
+
+    <div class="artifact-card">
+      <div class="artifact-label">Fase 02 &mdash; Product Discovery</div>
+      <div class="artifact-title">Oportunidades, Hipóteses e Backlog Estruturado</div>
+      <div class="artifact-body">
+        <p>9 oportunidades priorizadas via WSJF em 3 pilares (Core Infrastructure, Development Velocity, Production Reliability). 7 hipóteses de solução com 26 assumptions críticas. Backlog com 3 épicos, 13 features e 29 user stories com critérios de aceite em BDD/Gherkin. 4 riscos de Cagan avaliados, todos aprovados.</p>
+      </div>
+      <div class="artifact-meta">
+        <span class="file-ref">prioritized-opportunities.json</span>
+        <span class="file-ref">ideation-output.json</span>
+        <span class="file-ref">backlog-and-risks.json</span>
+      </div>
+    </div>
+
+    <div class="artifact-card">
+      <div class="artifact-label">Fase 03 &mdash; Product Delivery</div>
+      <div class="artifact-title">Arquitetura, API, Frontend e QA</div>
+      <div class="artifact-body">
+        <p>Arquitetura DDD com 6 bounded contexts. Stack: Fastify 5.0 + SQLite3 + React 18.3 + Vite 5.4 + Tailwind CSS. API com 29 endpoints (9 payment + 20 admin). Provider Pattern com InternalAdapter e AsaasAdapter. React SPA com 8 páginas admin. QA com score 82/100 &mdash; aprovado com observações.</p>
+      </div>
+      <div class="artifact-meta">
+        <span class="file-ref">architecture-output.json</span>
+        <span class="file-ref">backend-status.json</span>
+        <span class="file-ref">frontend-status.json</span>
+        <span class="file-ref">qa-report.json</span>
+      </div>
+    </div>
+
+    <div class="artifact-card">
+      <div class="artifact-label">Fase 04 &mdash; Operação</div>
+      <div class="artifact-title">Deploy, SLOs e Experimentos A/B</div>
+      <div class="artifact-body">
+        <p>Deploy strategy para ambiente local (v1). 3 SLOs definidos: 99.9% disponibilidade, &gt;99% entrega de webhooks, latência p95 &lt;300ms. DORA metrics adaptadas para desenvolvimento local. 3 experimentos A/B planejados para otimização contínua.</p>
+      </div>
+      <div class="artifact-meta">
+        <span class="file-ref">operations-output.json</span>
+      </div>
+    </div>
+
+  </main>
+
+  <script src="assets/nav.js"></script>
+</body>
+</html>

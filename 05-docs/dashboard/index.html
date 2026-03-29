@@ -1,0 +1,1126 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ECP Pay - Operations Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg: #0b0f14;
+  --surface: #131c28;
+  --secondary-bg: #0f1620;
+  --border: #27364a;
+  --lime: #b7ff2a;
+  --lime-pressed: #7ed100;
+  --lime-dim: rgba(183, 255, 42, 0.12);
+  --text-primary: #eaf2ff;
+  --text-secondary: #a9b7cc;
+  --text-tertiary: #7b8aa3;
+  --success: #3dff8b;
+  --warning: #ffcc00;
+  --danger: #ff4d4d;
+  --info: #4da3ff;
+  --radius-card: 18px;
+  --radius-control: 13px;
+  --font: 'Inter', sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+}
+
+body {
+  font-family: var(--font);
+  background: var(--bg);
+  color: var(--text-primary);
+  line-height: 1.6;
+  padding: 0;
+}
+
+/* Header */
+.header {
+  background: var(--secondary-bg);
+  border-bottom: 1px solid var(--border);
+  padding: 20px 32px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.header-left h1 {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--lime);
+}
+
+.header-left span {
+  font-size: 13px;
+  color: var(--text-tertiary);
+}
+
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--success);
+  display: inline-block;
+  margin-right: 6px;
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+/* Container */
+.container {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 24px 32px 60px;
+}
+
+/* Section tabs */
+.section-tabs {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 28px;
+  background: var(--secondary-bg);
+  border-radius: var(--radius-control);
+  padding: 4px;
+  border: 1px solid var(--border);
+  width: fit-content;
+}
+
+.section-tab {
+  padding: 8px 20px;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-tertiary);
+  cursor: pointer;
+  transition: all 0.15s;
+  border: none;
+  background: none;
+  font-family: var(--font);
+}
+
+.section-tab:hover { color: var(--text-secondary); }
+.section-tab.active {
+  background: var(--lime-dim);
+  color: var(--lime);
+}
+
+/* Section */
+.section { display: none; }
+.section.active { display: block; }
+
+.section-title {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 20px;
+}
+
+/* Cards */
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+  padding: 24px;
+}
+
+.kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.kpi-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+  padding: 20px;
+}
+
+.kpi-label {
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-tertiary);
+  margin-bottom: 8px;
+}
+
+.kpi-value {
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 4px;
+}
+
+.kpi-value.lime { color: var(--lime); }
+.kpi-value.success { color: var(--success); }
+.kpi-value.info { color: var(--info); }
+.kpi-value.warning { color: var(--warning); }
+
+.kpi-change {
+  font-size: 12px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.kpi-change.up { color: var(--success); }
+.kpi-change.down { color: var(--danger); }
+.kpi-change.neutral { color: var(--text-tertiary); }
+
+/* Chart container */
+.chart-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.chart-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+  padding: 24px;
+}
+
+.chart-card h3 {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin-bottom: 16px;
+}
+
+.chart-wrapper {
+  position: relative;
+  height: 240px;
+}
+
+/* Progress bars */
+.progress-item {
+  margin-bottom: 20px;
+}
+
+.progress-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.progress-label {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.progress-value {
+  font-size: 13px;
+  font-weight: 600;
+  font-family: var(--font-mono);
+}
+
+.progress-bar {
+  height: 8px;
+  background: rgba(39,54,74,0.5);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  border-radius: 4px;
+  transition: width 1s ease;
+}
+
+.progress-fill.lime { background: var(--lime); }
+.progress-fill.success { background: var(--success); }
+.progress-fill.warning { background: var(--warning); }
+.progress-fill.info { background: var(--info); }
+.progress-fill.danger { background: var(--danger); }
+
+.progress-meta {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 4px;
+  font-size: 11px;
+  color: var(--text-tertiary);
+}
+
+/* Badge */
+.badge {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.badge-lime { background: var(--lime-dim); color: var(--lime); }
+.badge-success { background: rgba(61,255,139,0.12); color: var(--success); }
+.badge-warning { background: rgba(255,204,0,0.12); color: var(--warning); }
+.badge-danger { background: rgba(255,77,77,0.12); color: var(--danger); }
+.badge-info { background: rgba(77,163,255,0.12); color: var(--info); }
+
+/* Table */
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+th {
+  text-align: left;
+  padding: 10px 14px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-tertiary);
+  border-bottom: 1px solid var(--border);
+}
+
+td {
+  padding: 10px 14px;
+  color: var(--text-secondary);
+  border-bottom: 1px solid rgba(39,54,74,0.3);
+}
+
+td code {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--lime);
+  background: var(--secondary-bg);
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .container { padding: 16px; }
+  .kpi-grid { grid-template-columns: repeat(2, 1fr); }
+  .chart-grid { grid-template-columns: 1fr; }
+  .header { padding: 16px; }
+  .section-tabs { flex-wrap: wrap; }
+}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-left">
+    <h1>ECP Pay</h1>
+    <span>Operations Dashboard</span>
+  </div>
+  <div class="header-right">
+    <span><span class="status-dot"></span>INTERNAL mode</span>
+    <span>|</span>
+    <span>Last update: just now</span>
+    <span>|</span>
+    <a href="../index.html" style="color: var(--lime); text-decoration: none; font-weight: 600;">Docs &rarr;</a>
+  </div>
+</div>
+
+<div class="container">
+
+  <div class="section-tabs">
+    <button class="section-tab active" data-section="overview">Visão Geral</button>
+    <button class="section-tab" data-section="product">Uso do Produto</button>
+    <button class="section-tab" data-section="outcomes">Outcomes & KRs</button>
+    <button class="section-tab" data-section="sre">SRE & Técnico</button>
+  </div>
+
+  <!-- VISAO GERAL -->
+  <div id="overview" class="section active">
+    <h2 class="section-title">Visão Geral</h2>
+
+    <div class="kpi-grid">
+      <div class="kpi-card">
+        <div class="kpi-label">Volume Total (30d)</div>
+        <div class="kpi-value lime">R$ 847.320</div>
+        <div class="kpi-change up">+12.4% vs mes anterior</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">Transações (30d)</div>
+        <div class="kpi-value">2.847</div>
+        <div class="kpi-change up">+8.2% vs mes anterior</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">Taxa de Sucesso</div>
+        <div class="kpi-value success">97.3%</div>
+        <div class="kpi-change up">+0.8pp vs mes anterior</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">Provider Ativo</div>
+        <div class="kpi-value" style="font-size: 20px;">INTERNAL</div>
+        <div class="kpi-change neutral">Ativo ha 14 dias</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">Apps Conectados</div>
+        <div class="kpi-value info">3</div>
+        <div class="kpi-change neutral">ecp-bank, ecp-emps, ecp-food</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">Tokens no Cofre</div>
+        <div class="kpi-value">156</div>
+        <div class="kpi-change up">+23 este mes</div>
+      </div>
+    </div>
+
+    <div class="chart-grid">
+      <div class="chart-card">
+        <h3>Volume Transacionado (30 dias)</h3>
+        <div class="chart-wrapper">
+          <canvas id="volumeChart"></canvas>
+        </div>
+      </div>
+      <div class="chart-card">
+        <h3>Distribuição por Tipo</h3>
+        <div class="chart-wrapper">
+          <canvas id="typeChart"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <div class="chart-grid">
+      <div class="chart-card">
+        <h3>Volume por App de Origem</h3>
+        <div class="chart-wrapper">
+          <canvas id="appChart"></canvas>
+        </div>
+      </div>
+      <div class="chart-card">
+        <h3>Taxa de Sucesso por Hora (24h)</h3>
+        <div class="chart-wrapper">
+          <canvas id="successChart"></canvas>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- USO DO PRODUTO -->
+  <div id="product" class="section">
+    <h2 class="section-title">Uso do Produto</h2>
+
+    <div class="kpi-grid">
+      <div class="kpi-card">
+        <div class="kpi-label">Ticket Medio</div>
+        <div class="kpi-value lime">R$ 297,60</div>
+        <div class="kpi-change up">+5.1%</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">Pix (% do volume)</div>
+        <div class="kpi-value">62%</div>
+        <div class="kpi-change up">+3pp</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">Cartão (% do volume)</div>
+        <div class="kpi-value">28%</div>
+        <div class="kpi-change down">-2pp</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">Boleto (% do volume)</div>
+        <div class="kpi-value">10%</div>
+        <div class="kpi-change down">-1pp</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">Estornos (30d)</div>
+        <div class="kpi-value warning">34</div>
+        <div class="kpi-change neutral">1.2% das transações</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">Splits Processados</div>
+        <div class="kpi-value">187</div>
+        <div class="kpi-change up">+15%</div>
+      </div>
+    </div>
+
+    <div class="chart-grid">
+      <div class="chart-card">
+        <h3>Transações por Dia da Semana</h3>
+        <div class="chart-wrapper">
+          <canvas id="weekdayChart"></canvas>
+        </div>
+      </div>
+      <div class="chart-card">
+        <h3>Top Metodos por App</h3>
+        <div class="chart-wrapper">
+          <canvas id="methodAppChart"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <h3 style="font-size: 16px; font-weight: 600; color: var(--text-primary); margin: 24px 0 12px;">Ultimas Transações</h3>
+    <div class="card">
+      <table>
+        <thead>
+          <tr><th>ID</th><th>App</th><th>Tipo</th><th>Valor</th><th>Status</th><th>Data</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><code>a3f7c...</code></td><td>ecp-bank</td><td><span class="badge badge-lime">Pix</span></td><td>R$ 1.250,00</td><td><span class="badge badge-success">completed</span></td><td>28/03 14:32</td></tr>
+          <tr><td><code>b8e2d...</code></td><td>ecp-emps</td><td><span class="badge badge-info">Card</span></td><td>R$ 450,00</td><td><span class="badge badge-success">completed</span></td><td>28/03 14:28</td></tr>
+          <tr><td><code>c1d9f...</code></td><td>ecp-food</td><td><span class="badge badge-lime">Pix</span></td><td>R$ 89,90</td><td><span class="badge badge-warning">pending</span></td><td>28/03 14:25</td></tr>
+          <tr><td><code>d4a6b...</code></td><td>ecp-bank</td><td><span class="badge badge-warning">Boleto</span></td><td>R$ 3.200,00</td><td><span class="badge badge-success">completed</span></td><td>28/03 14:20</td></tr>
+          <tr><td><code>e7c3a...</code></td><td>ecp-emps</td><td><span class="badge badge-info">Card</span></td><td>R$ 780,00</td><td><span class="badge badge-danger">failed</span></td><td>28/03 14:15</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- OUTCOMES & KRs -->
+  <div id="outcomes" class="section">
+    <h2 class="section-title">Outcomes & KRs</h2>
+
+    <div class="card" style="margin-bottom: 24px;">
+      <p style="font-size: 15px; color: var(--text-secondary); margin-bottom: 16px;">Progresso dos Key Results em relação aos targets definidos na Fase 01 (Contexto Estratégico).</p>
+
+      <div class="progress-item">
+        <div class="progress-header">
+          <span class="progress-label">KR-01: Tempo de integração &lt; 4h</span>
+          <span class="progress-value" style="color: var(--success);">85%</span>
+        </div>
+        <div class="progress-bar">
+          <div class="progress-fill success" style="width: 85%;"></div>
+        </div>
+        <div class="progress-meta">
+          <span>Baseline: 2-3 semanas</span>
+          <span>Atual: ~3.5h (estimado via seed + docs)</span>
+          <span>Target: &lt; 4h</span>
+        </div>
+      </div>
+
+      <div class="progress-item">
+        <div class="progress-header">
+          <span class="progress-label">KR-02: 100% transações centralizadas</span>
+          <span class="progress-value" style="color: var(--warning);">33%</span>
+        </div>
+        <div class="progress-bar">
+          <div class="progress-fill warning" style="width: 33%;"></div>
+        </div>
+        <div class="progress-meta">
+          <span>Baseline: 0%</span>
+          <span>Atual: 1/3 apps migrados (ecp-food)</span>
+          <span>Target: 100%</span>
+        </div>
+      </div>
+
+      <div class="progress-item">
+        <div class="progress-header">
+          <span class="progress-label">KR-03: Zero linhas alteradas nos apps ao trocar provider</span>
+          <span class="progress-value" style="color: var(--success);">100%</span>
+        </div>
+        <div class="progress-bar">
+          <div class="progress-fill lime" style="width: 100%;"></div>
+        </div>
+        <div class="progress-meta">
+          <span>Provider Pattern implementado</span>
+          <span>Troca via admin panel, zero impacto nos apps</span>
+          <span>Target: 0 linhas</span>
+        </div>
+      </div>
+
+      <div class="progress-item">
+        <div class="progress-header">
+          <span class="progress-label">KR-04: 100% cenarios testaveis offline</span>
+          <span class="progress-value" style="color: var(--success);">95%</span>
+        </div>
+        <div class="progress-bar">
+          <div class="progress-fill success" style="width: 95%;"></div>
+        </div>
+        <div class="progress-meta">
+          <span>Baseline: 0%</span>
+          <span>Atual: Pix, Card, Boleto, Refund, Webhook testam offline</span>
+          <span>Target: 100%</span>
+        </div>
+      </div>
+
+      <div class="progress-item">
+        <div class="progress-header">
+          <span class="progress-label">KR-05: 99.9% uptime + 99% webhook delivery</span>
+          <span class="progress-value" style="color: var(--info);">60%</span>
+        </div>
+        <div class="progress-bar">
+          <div class="progress-fill info" style="width: 60%;"></div>
+        </div>
+        <div class="progress-meta">
+          <span>Baseline: N/A (serviço novo)</span>
+          <span>Atual: Em monitoramento inicial (local dev)</span>
+          <span>Target: 99.9% / 99%</span>
+        </div>
+      </div>
+    </div>
+
+    <h3 style="font-size: 16px; font-weight: 600; color: var(--text-primary); margin-bottom: 12px;">A/B Tests</h3>
+    <div class="card">
+      <table>
+        <thead>
+          <tr><th>ID</th><th>Experimento</th><th>Metrica</th><th>KR</th><th>Status</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>EXP-001</code></td>
+            <td>Internal Mode Auto-Approve Delay (5s vs 1s)</td>
+            <td>Tempo ciclo de teste</td>
+            <td><span class="badge badge-info">KR-04</span></td>
+            <td><span class="badge badge-warning">Planned</span></td>
+          </tr>
+          <tr>
+            <td><code>EXP-002</code></td>
+            <td>Transaction Timeline Granularity</td>
+            <td>Tempo investigação root cause</td>
+            <td><span class="badge badge-info">KR-05</span></td>
+            <td><span class="badge badge-warning">Planned</span></td>
+          </tr>
+          <tr>
+            <td><code>EXP-003</code></td>
+            <td>Provider Switch Confirmation Flow</td>
+            <td>Switch-backs acidentais em 5min</td>
+            <td><span class="badge badge-info">KR-03</span></td>
+            <td><span class="badge badge-warning">Planned</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- SRE & TECNICO -->
+  <div id="sre" class="section">
+    <h2 class="section-title">SRE & Técnico</h2>
+
+    <div class="kpi-grid">
+      <div class="kpi-card">
+        <div class="kpi-label">API Uptime (30d)</div>
+        <div class="kpi-value success">99.94%</div>
+        <div class="kpi-change up">SLO: 99.9%</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">Latência p50</div>
+        <div class="kpi-value">42ms</div>
+        <div class="kpi-change neutral">Mediana</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">Latência p95</div>
+        <div class="kpi-value success">187ms</div>
+        <div class="kpi-change up">SLO: &lt;300ms</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">Latência p99</div>
+        <div class="kpi-value warning">264ms</div>
+        <div class="kpi-change neutral">Pico em card charges</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">Webhook 1st Delivery</div>
+        <div class="kpi-value success">99.2%</div>
+        <div class="kpi-change up">SLO: &gt;99%</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">Error Rate (5xx)</div>
+        <div class="kpi-value success">0.06%</div>
+        <div class="kpi-change up">-0.02pp</div>
+      </div>
+    </div>
+
+    <div class="chart-grid">
+      <div class="chart-card">
+        <h3>Latência p95 por Hora (24h)</h3>
+        <div class="chart-wrapper">
+          <canvas id="latencyChart"></canvas>
+        </div>
+      </div>
+      <div class="chart-card">
+        <h3>Requests por Minuto (24h)</h3>
+        <div class="chart-wrapper">
+          <canvas id="rpmChart"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <h3 style="font-size: 16px; font-weight: 600; color: var(--text-primary); margin: 24px 0 12px;">DORA Metrics</h3>
+    <div class="kpi-grid" style="grid-template-columns: repeat(4, 1fr);">
+      <div class="kpi-card">
+        <div class="kpi-label">Deploy Frequency</div>
+        <div class="kpi-value" style="font-size: 18px;">On-demand</div>
+        <div class="kpi-change neutral">Local dev</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">Lead Time</div>
+        <div class="kpi-value" style="font-size: 18px;">Minutes</div>
+        <div class="kpi-change up">Hot reload (tsx)</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">Change Failure Rate</div>
+        <div class="kpi-value" style="font-size: 18px;">Tracked</div>
+        <div class="kpi-change neutral">Via audit_logs</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">MTTR</div>
+        <div class="kpi-value" style="font-size: 18px;">Seconds</div>
+        <div class="kpi-change up">Restart server</div>
+      </div>
+    </div>
+
+    <h3 style="font-size: 16px; font-weight: 600; color: var(--text-primary); margin: 24px 0 12px;">SLO Status</h3>
+    <div class="card">
+      <div class="progress-item">
+        <div class="progress-header">
+          <span class="progress-label">API Availability (target: 99.9%)</span>
+          <span class="progress-value" style="color: var(--success);">99.94%</span>
+        </div>
+        <div class="progress-bar">
+          <div class="progress-fill success" style="width: 99.94%;"></div>
+        </div>
+        <div class="progress-meta">
+          <span>Error budget remaining: 87%</span>
+          <span>43.2min downtime allowed (30d)</span>
+        </div>
+      </div>
+
+      <div class="progress-item">
+        <div class="progress-header">
+          <span class="progress-label">Webhook 1st Delivery (target: &gt;99%)</span>
+          <span class="progress-value" style="color: var(--success);">99.2%</span>
+        </div>
+        <div class="progress-bar">
+          <div class="progress-fill success" style="width: 99.2%;"></div>
+        </div>
+        <div class="progress-meta">
+          <span>22 retries needed this month</span>
+          <span>0 permanently failed</span>
+        </div>
+      </div>
+
+      <div class="progress-item">
+        <div class="progress-header">
+          <span class="progress-label">API Latency p95 (target: &lt;300ms)</span>
+          <span class="progress-value" style="color: var(--success);">187ms</span>
+        </div>
+        <div class="progress-bar">
+          <div class="progress-fill success" style="width: 62%;"></div>
+        </div>
+        <div class="progress-meta">
+          <span>113ms headroom</span>
+          <span>Slowest endpoint: POST /pay/card (264ms p99)</span>
+        </div>
+      </div>
+    </div>
+
+    <h3 style="font-size: 16px; font-weight: 600; color: var(--text-primary); margin: 24px 0 12px;">Endpoints Health</h3>
+    <div class="card">
+      <table>
+        <thead>
+          <tr><th>Endpoint</th><th>Calls (24h)</th><th>p50</th><th>p95</th><th>Error %</th><th>Status</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><code>POST /pay/pix</code></td><td>342</td><td>38ms</td><td>124ms</td><td>0.3%</td><td><span class="badge badge-success">Healthy</span></td></tr>
+          <tr><td><code>POST /pay/card</code></td><td>187</td><td>65ms</td><td>210ms</td><td>2.1%</td><td><span class="badge badge-success">Healthy</span></td></tr>
+          <tr><td><code>POST /pay/boleto</code></td><td>78</td><td>45ms</td><td>156ms</td><td>0.0%</td><td><span class="badge badge-success">Healthy</span></td></tr>
+          <tr><td><code>GET /pay/transactions/:id</code></td><td>1204</td><td>12ms</td><td>34ms</td><td>0.0%</td><td><span class="badge badge-success">Healthy</span></td></tr>
+          <tr><td><code>GET /pay/health</code></td><td>8640</td><td>3ms</td><td>8ms</td><td>0.0%</td><td><span class="badge badge-success">Healthy</span></td></tr>
+          <tr><td><code>GET /admin/dashboard</code></td><td>412</td><td>89ms</td><td>245ms</td><td>0.0%</td><td><span class="badge badge-warning">Watch</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// Tab switching
+document.querySelectorAll('.section-tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    document.querySelectorAll('.section-tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+    tab.classList.add('active');
+    document.getElementById(tab.dataset.section).classList.add('active');
+  });
+});
+
+// Chart defaults
+Chart.defaults.color = '#a9b7cc';
+Chart.defaults.borderColor = 'rgba(39,54,74,0.5)';
+Chart.defaults.font.family = "'Inter', sans-serif";
+Chart.defaults.font.size = 11;
+
+// Generate 30 days of labels
+const days = [];
+for (let i = 29; i >= 0; i--) {
+  const d = new Date();
+  d.setDate(d.getDate() - i);
+  days.push(d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }));
+}
+
+// Volume Chart
+new Chart(document.getElementById('volumeChart'), {
+  type: 'line',
+  data: {
+    labels: days,
+    datasets: [
+      {
+        label: 'Total',
+        data: [22000, 25000, 28000, 24000, 30000, 32000, 28000, 26000, 29000, 35000, 33000, 31000, 27000, 34000, 36000, 38000, 32000, 29000, 33000, 37000, 35000, 40000, 38000, 36000, 34000, 41000, 39000, 42000, 38000, 44000],
+        borderColor: '#b7ff2a',
+        backgroundColor: 'rgba(183, 255, 42, 0.08)',
+        fill: true,
+        tension: 0.3,
+        borderWidth: 2,
+        pointRadius: 0,
+        pointHitRadius: 10,
+      },
+      {
+        label: 'ecp-bank',
+        data: [12000, 14000, 15000, 13000, 16000, 17000, 15000, 14000, 16000, 19000, 18000, 17000, 15000, 18000, 20000, 21000, 17000, 16000, 18000, 20000, 19000, 22000, 21000, 20000, 19000, 22000, 21000, 23000, 20000, 24000],
+        borderColor: '#9b7dff',
+        tension: 0.3,
+        borderWidth: 1.5,
+        pointRadius: 0,
+        borderDash: [4, 4],
+      },
+      {
+        label: 'ecp-emps',
+        data: [7000, 8000, 9000, 8000, 10000, 11000, 9000, 8000, 9000, 11000, 10000, 10000, 8000, 11000, 11000, 12000, 10000, 9000, 10000, 12000, 11000, 12000, 12000, 11000, 10000, 13000, 12000, 13000, 12000, 14000],
+        borderColor: '#ff7b7b',
+        tension: 0.3,
+        borderWidth: 1.5,
+        pointRadius: 0,
+        borderDash: [4, 4],
+      },
+      {
+        label: 'ecp-food',
+        data: [3000, 3000, 4000, 3000, 4000, 4000, 4000, 4000, 4000, 5000, 5000, 4000, 4000, 5000, 5000, 5000, 5000, 4000, 5000, 5000, 5000, 6000, 5000, 5000, 5000, 6000, 6000, 6000, 6000, 6000],
+        borderColor: '#4dd4ac',
+        tension: 0.3,
+        borderWidth: 1.5,
+        pointRadius: 0,
+        borderDash: [4, 4],
+      }
+    ]
+  },
+  options: {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: { position: 'top', labels: { boxWidth: 12, padding: 12 } },
+      tooltip: {
+        backgroundColor: '#131c28',
+        borderColor: '#27364a',
+        borderWidth: 1,
+        titleColor: '#eaf2ff',
+        bodyColor: '#a9b7cc',
+        callbacks: {
+          label: ctx => ctx.dataset.label + ': R$ ' + (ctx.raw / 100).toLocaleString('pt-BR', { minimumFractionDigits: 2 })
+        }
+      }
+    },
+    scales: {
+      y: {
+        ticks: { callback: v => 'R$ ' + (v/1000) + 'k' },
+        grid: { color: 'rgba(39,54,74,0.3)' }
+      },
+      x: {
+        ticks: { maxTicksLimit: 10 },
+        grid: { display: false }
+      }
+    }
+  }
+});
+
+// Type Distribution Donut
+new Chart(document.getElementById('typeChart'), {
+  type: 'doughnut',
+  data: {
+    labels: ['Pix', 'Cartão', 'Boleto'],
+    datasets: [{
+      data: [1765, 797, 285],
+      backgroundColor: ['#b7ff2a', '#4da3ff', '#ffcc00'],
+      borderColor: '#131c28',
+      borderWidth: 3,
+      hoverOffset: 8,
+    }]
+  },
+  options: {
+    responsive: true,
+    maintainAspectRatio: false,
+    cutout: '65%',
+    plugins: {
+      legend: { position: 'bottom', labels: { padding: 16, boxWidth: 12 } },
+      tooltip: {
+        backgroundColor: '#131c28',
+        borderColor: '#27364a',
+        borderWidth: 1,
+        callbacks: {
+          label: ctx => {
+            const total = ctx.dataset.data.reduce((a,b) => a+b, 0);
+            const pct = ((ctx.raw / total) * 100).toFixed(1);
+            return ctx.label + ': ' + ctx.raw + ' (' + pct + '%)';
+          }
+        }
+      }
+    }
+  }
+});
+
+// App Chart (stacked bar)
+new Chart(document.getElementById('appChart'), {
+  type: 'bar',
+  data: {
+    labels: ['ecp-bank', 'ecp-emps', 'ecp-food'],
+    datasets: [
+      { label: 'Pix', data: [890, 580, 295], backgroundColor: '#b7ff2a' },
+      { label: 'Cartão', data: [420, 290, 87], backgroundColor: '#4da3ff' },
+      { label: 'Boleto', data: [180, 72, 33], backgroundColor: '#ffcc00' },
+    ]
+  },
+  options: {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: { position: 'top', labels: { boxWidth: 12, padding: 12 } },
+      tooltip: { backgroundColor: '#131c28', borderColor: '#27364a', borderWidth: 1 }
+    },
+    scales: {
+      x: { stacked: true, grid: { display: false } },
+      y: { stacked: true, grid: { color: 'rgba(39,54,74,0.3)' } }
+    }
+  }
+});
+
+// Success Rate Chart
+const hours24 = Array.from({length: 24}, (_, i) => i.toString().padStart(2, '0') + ':00');
+const successData = [98.2, 97.8, 99.1, 98.5, 97.0, 96.8, 97.5, 98.0, 97.2, 96.5, 97.8, 98.3, 97.9, 98.1, 96.2, 97.6, 98.4, 97.7, 98.0, 97.3, 96.9, 97.5, 98.1, 97.8];
+
+new Chart(document.getElementById('successChart'), {
+  type: 'bar',
+  data: {
+    labels: hours24,
+    datasets: [{
+      label: 'Success Rate %',
+      data: successData,
+      backgroundColor: successData.map(v => v >= 97 ? '#3dff8b' : v >= 95 ? '#ffcc00' : '#ff4d4d'),
+      borderRadius: 3,
+      barPercentage: 0.7,
+    }]
+  },
+  options: {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: { display: false },
+      tooltip: {
+        backgroundColor: '#131c28',
+        borderColor: '#27364a',
+        borderWidth: 1,
+        callbacks: { label: ctx => ctx.raw + '%' }
+      },
+      annotation: undefined
+    },
+    scales: {
+      y: {
+        min: 90,
+        max: 100,
+        ticks: { callback: v => v + '%' },
+        grid: { color: 'rgba(39,54,74,0.3)' }
+      },
+      x: {
+        ticks: { maxTicksLimit: 12 },
+        grid: { display: false }
+      }
+    }
+  }
+});
+
+// Weekday Chart
+new Chart(document.getElementById('weekdayChart'), {
+  type: 'bar',
+  data: {
+    labels: ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sab', 'Dom'],
+    datasets: [{
+      label: 'Transações',
+      data: [487, 512, 498, 534, 462, 198, 156],
+      backgroundColor: 'rgba(183, 255, 42, 0.6)',
+      borderColor: '#b7ff2a',
+      borderWidth: 1,
+      borderRadius: 6,
+    }]
+  },
+  options: {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: { display: false },
+      tooltip: { backgroundColor: '#131c28', borderColor: '#27364a', borderWidth: 1 }
+    },
+    scales: {
+      y: { grid: { color: 'rgba(39,54,74,0.3)' } },
+      x: { grid: { display: false } }
+    }
+  }
+});
+
+// Method by App Chart
+new Chart(document.getElementById('methodAppChart'), {
+  type: 'radar',
+  data: {
+    labels: ['Pix', 'Cartão', 'Boleto', 'Estorno', 'Split'],
+    datasets: [
+      {
+        label: 'ecp-bank',
+        data: [890, 420, 180, 15, 0],
+        borderColor: '#9b7dff',
+        backgroundColor: 'rgba(155, 125, 255, 0.1)',
+        borderWidth: 2,
+        pointRadius: 3,
+      },
+      {
+        label: 'ecp-emps',
+        data: [580, 290, 72, 12, 0],
+        borderColor: '#ff7b7b',
+        backgroundColor: 'rgba(255, 123, 123, 0.1)',
+        borderWidth: 2,
+        pointRadius: 3,
+      },
+      {
+        label: 'ecp-food',
+        data: [295, 87, 33, 7, 187],
+        borderColor: '#4dd4ac',
+        backgroundColor: 'rgba(77, 212, 172, 0.1)',
+        borderWidth: 2,
+        pointRadius: 3,
+      }
+    ]
+  },
+  options: {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: { position: 'top', labels: { boxWidth: 12, padding: 12 } },
+      tooltip: { backgroundColor: '#131c28', borderColor: '#27364a', borderWidth: 1 }
+    },
+    scales: {
+      r: {
+        grid: { color: 'rgba(39,54,74,0.3)' },
+        angleLines: { color: 'rgba(39,54,74,0.3)' },
+        pointLabels: { color: '#a9b7cc', font: { size: 11 } },
+        ticks: { display: false }
+      }
+    }
+  }
+});
+
+// Latency Chart
+new Chart(document.getElementById('latencyChart'), {
+  type: 'line',
+  data: {
+    labels: hours24,
+    datasets: [
+      {
+        label: 'p95',
+        data: [165, 172, 158, 148, 142, 155, 180, 195, 210, 205, 198, 185, 175, 192, 215, 202, 188, 178, 170, 165, 158, 152, 160, 168],
+        borderColor: '#b7ff2a',
+        backgroundColor: 'rgba(183, 255, 42, 0.08)',
+        fill: true,
+        tension: 0.3,
+        borderWidth: 2,
+        pointRadius: 0,
+      },
+      {
+        label: 'SLO (300ms)',
+        data: Array(24).fill(300),
+        borderColor: 'rgba(255, 77, 77, 0.5)',
+        borderWidth: 1,
+        borderDash: [6, 4],
+        pointRadius: 0,
+        fill: false,
+      }
+    ]
+  },
+  options: {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: { position: 'top', labels: { boxWidth: 12, padding: 12 } },
+      tooltip: {
+        backgroundColor: '#131c28',
+        borderColor: '#27364a',
+        borderWidth: 1,
+        callbacks: { label: ctx => ctx.dataset.label + ': ' + ctx.raw + 'ms' }
+      }
+    },
+    scales: {
+      y: {
+        min: 0,
+        max: 350,
+        ticks: { callback: v => v + 'ms' },
+        grid: { color: 'rgba(39,54,74,0.3)' }
+      },
+      x: { ticks: { maxTicksLimit: 12 }, grid: { display: false } }
+    }
+  }
+});
+
+// RPM Chart
+new Chart(document.getElementById('rpmChart'), {
+  type: 'line',
+  data: {
+    labels: hours24,
+    datasets: [{
+      label: 'Requests/min',
+      data: [12, 8, 5, 4, 3, 5, 15, 28, 42, 48, 52, 55, 50, 47, 45, 43, 40, 38, 35, 30, 25, 20, 18, 15],
+      borderColor: '#4da3ff',
+      backgroundColor: 'rgba(77, 163, 255, 0.08)',
+      fill: true,
+      tension: 0.3,
+      borderWidth: 2,
+      pointRadius: 0,
+    }]
+  },
+  options: {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: { display: false },
+      tooltip: {
+        backgroundColor: '#131c28',
+        borderColor: '#27364a',
+        borderWidth: 1,
+        callbacks: { label: ctx => ctx.raw + ' req/min' }
+      }
+    },
+    scales: {
+      y: {
+        min: 0,
+        ticks: { callback: v => v + ' rpm' },
+        grid: { color: 'rgba(39,54,74,0.3)' }
+      },
+      x: { ticks: { maxTicksLimit: 12 }, grid: { display: false } }
+    }
+  }
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,996 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ECP Pay — Admin Panel</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+/* ===== RESET & TOKENS ===== */
+*, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+:root {
+  --color-background: #0b0f14;
+  --color-surface: #131c28;
+  --color-secondary-bg: #0f1620;
+  --color-border: #27364a;
+  --color-lime: #b7ff2a;
+  --color-lime-pressed: #7ed100;
+  --color-lime-dim: rgba(183, 255, 42, 0.12);
+  --color-text-primary: #eaf2ff;
+  --color-text-secondary: #a9b7cc;
+  --color-text-tertiary: #7b8aa3;
+  --color-success: #3dff8b;
+  --color-warning: #ffcc00;
+  --color-danger: #ff4d4d;
+  --color-info: #4da3ff;
+  --radius-card: 18px;
+  --radius-control: 13px;
+  --radius-badge: 20px;
+  --font-family: 'Inter', sans-serif;
+  --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
+}
+html, body { height:100%; background:var(--color-background); color:var(--color-text-primary); font-family:var(--font-family); font-size:14px; line-height:1.5; -webkit-font-smoothing:antialiased; }
+a { color:var(--color-lime); text-decoration:none; }
+
+/* ===== SCREEN SYSTEM ===== */
+.screen { display:none; min-height:100vh; }
+.screen.active { display:flex; }
+
+/* ===== SCROLLBAR ===== */
+::-webkit-scrollbar { width:6px; }
+::-webkit-scrollbar-track { background:var(--color-background); }
+::-webkit-scrollbar-thumb { background:var(--color-border); border-radius:3px; }
+::-webkit-scrollbar-thumb:hover { background:var(--color-text-tertiary); }
+
+/* ===== BUTTONS ===== */
+.btn { display:inline-flex; align-items:center; gap:6px; padding:10px 20px; border:none; border-radius:var(--radius-control); font-family:var(--font-family); font-size:14px; font-weight:600; cursor:pointer; transition:all 200ms ease; white-space:nowrap; }
+.btn:active { transform:scale(0.97); }
+.btn-primary { background:var(--color-lime); color:#0b0f14; }
+.btn-primary:hover { background:var(--color-lime-pressed); }
+.btn-secondary { background:transparent; color:var(--color-text-primary); border:1px solid var(--color-border); }
+.btn-secondary:hover { border-color:var(--color-text-tertiary); background:rgba(255,255,255,0.03); }
+.btn-danger { background:transparent; color:var(--color-danger); border:1px solid var(--color-danger); }
+.btn-danger:hover { background:rgba(255,77,77,0.1); }
+.btn-ghost { background:transparent; color:var(--color-text-secondary); border:none; padding:8px 12px; }
+.btn-ghost:hover { color:var(--color-text-primary); background:rgba(255,255,255,0.05); }
+.btn-sm { padding:6px 14px; font-size:12px; }
+
+/* ===== INPUTS ===== */
+.input-group { display:flex; flex-direction:column; gap:6px; }
+.input-group label { font-size:12px; font-weight:500; color:var(--color-text-secondary); }
+input[type="text"], input[type="email"], input[type="password"], input[type="number"], input[type="search"], select {
+  background:var(--color-surface); border:1px solid var(--color-border); border-radius:var(--radius-control);
+  padding:10px 14px; color:var(--color-text-primary); font-family:var(--font-family); font-size:14px;
+  transition:border-color 200ms ease, box-shadow 200ms ease; outline:none; width:100%;
+}
+input:focus, select:focus { border-color:var(--color-lime); box-shadow:0 0 0 3px var(--color-lime-dim); }
+input::placeholder { color:var(--color-text-tertiary); }
+select { cursor:pointer; appearance:none; background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%237b8aa3' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E"); background-repeat:no-repeat; background-position:right 12px center; padding-right:32px; }
+select option { background:var(--color-surface); color:var(--color-text-primary); }
+
+/* ===== BADGES ===== */
+.badge { display:inline-flex; align-items:center; gap:4px; padding:3px 10px; border-radius:var(--radius-badge); font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:0.5px; white-space:nowrap; }
+.badge-success { background:rgba(61,255,139,0.12); color:var(--color-success); }
+.badge-warning { background:rgba(255,204,0,0.12); color:var(--color-warning); }
+.badge-danger { background:rgba(255,77,77,0.12); color:var(--color-danger); }
+.badge-info { background:rgba(77,163,255,0.12); color:var(--color-info); }
+.badge-lime { background:var(--color-lime-dim); color:var(--color-lime); }
+.badge-neutral { background:rgba(123,138,163,0.12); color:var(--color-text-tertiary); }
+
+/* ===== TABLES ===== */
+.table-wrapper { overflow-x:auto; border:1px solid var(--color-border); border-radius:var(--radius-card); }
+table { width:100%; border-collapse:collapse; }
+thead th { padding:12px 16px; text-align:left; font-size:11px; font-weight:600; color:var(--color-text-tertiary); text-transform:uppercase; letter-spacing:0.5px; background:var(--color-secondary-bg); border-bottom:1px solid var(--color-border); }
+tbody td { padding:12px 16px; border-bottom:1px solid var(--color-border); font-size:13px; color:var(--color-text-secondary); }
+tbody tr:last-child td { border-bottom:none; }
+tbody tr:hover { background:rgba(255,255,255,0.02); }
+tbody tr.clickable { cursor:pointer; }
+tbody tr.clickable:hover { background:rgba(183,255,42,0.03); }
+.mono { font-family:var(--font-mono); font-size:12px; }
+.truncate { max-width:160px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; display:inline-block; vertical-align:middle; }
+
+/* ===== CARDS ===== */
+.card { background:var(--color-surface); border:1px solid var(--color-border); border-radius:var(--radius-card); padding:24px; }
+
+/* ===== LOGIN SCREEN ===== */
+.login-wrapper { display:flex; align-items:center; justify-content:center; width:100%; min-height:100vh; background:var(--color-background); }
+.login-card { width:100%; max-width:400px; padding:40px; }
+.login-logo { font-size:28px; font-weight:700; color:var(--color-lime); text-align:center; margin-bottom:4px; }
+.login-subtitle { text-align:center; color:var(--color-text-tertiary); font-size:13px; margin-bottom:36px; }
+.login-card .input-group { margin-bottom:20px; }
+.login-card .btn-primary { width:100%; justify-content:center; padding:12px; font-size:15px; margin-top:8px; }
+.login-footer { text-align:center; margin-top:32px; color:var(--color-text-tertiary); font-size:12px; }
+
+/* ===== LAYOUT: SIDEBAR + MAIN ===== */
+.app-layout { display:flex; width:100%; min-height:100vh; }
+.sidebar { width:240px; min-width:240px; background:var(--color-secondary-bg); border-right:1px solid var(--color-border); display:flex; flex-direction:column; position:fixed; top:0; left:0; bottom:0; z-index:100; }
+.sidebar-logo { padding:24px 20px 4px; font-size:20px; font-weight:700; color:var(--color-lime); }
+.sidebar-subtitle { padding:0 20px 24px; font-size:11px; color:var(--color-text-tertiary); }
+.sidebar-nav { flex:1; display:flex; flex-direction:column; gap:2px; padding:0 8px; }
+.nav-item { display:flex; align-items:center; gap:10px; padding:10px 14px; border-radius:var(--radius-control); font-size:14px; font-weight:500; color:var(--color-text-secondary); cursor:pointer; transition:all 200ms ease; }
+.nav-item:hover { color:var(--color-text-primary); background:rgba(255,255,255,0.04); }
+.nav-item.active { color:var(--color-lime); background:var(--color-lime-dim); }
+.nav-item .nav-icon { width:20px; text-align:center; font-size:15px; }
+.sidebar-footer { padding:16px 20px; border-top:1px solid var(--color-border); }
+.provider-indicator { display:flex; align-items:center; gap:8px; font-size:12px; color:var(--color-text-secondary); }
+.provider-dot { width:8px; height:8px; border-radius:50%; }
+.provider-dot.internal { background:var(--color-warning); }
+.provider-dot.external { background:var(--color-lime); }
+
+.main-area { flex:1; margin-left:240px; display:flex; flex-direction:column; min-height:100vh; }
+.top-header { display:flex; align-items:center; justify-content:space-between; padding:16px 32px; border-bottom:1px solid var(--color-border); background:var(--color-secondary-bg); min-height:60px; }
+.top-header h1 { font-size:18px; font-weight:600; display:flex; align-items:center; gap:12px; }
+.header-right { display:flex; align-items:center; gap:16px; }
+.user-name { font-size:13px; color:var(--color-text-secondary); }
+.content-area { flex:1; padding:28px 32px; overflow-y:auto; }
+
+/* ===== INTERNAL MODE BANNER ===== */
+.internal-banner { background:rgba(255,204,0,0.08); border-bottom:1px solid rgba(255,204,0,0.2); padding:8px 32px; font-size:12px; font-weight:600; color:var(--color-warning); display:flex; align-items:center; gap:8px; }
+
+/* ===== DASHBOARD ===== */
+.kpi-grid { display:grid; grid-template-columns:repeat(3, 1fr); gap:16px; margin-bottom:24px; }
+.kpi-card { padding:20px; }
+.kpi-label { font-size:12px; color:var(--color-text-tertiary); margin-bottom:6px; text-transform:uppercase; letter-spacing:0.5px; font-weight:500; }
+.kpi-value { font-size:24px; font-weight:700; color:var(--color-text-primary); }
+.kpi-sub { font-size:12px; color:var(--color-text-tertiary); margin-top:4px; }
+
+.provider-card { border-left:3px solid var(--color-lime); margin-bottom:24px; }
+.provider-card-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:12px; }
+.provider-card-title { font-size:16px; font-weight:600; display:flex; align-items:center; gap:10px; }
+.provider-meta { display:flex; gap:24px; margin-top:8px; }
+.provider-meta-item { font-size:13px; color:var(--color-text-secondary); }
+
+.section-title { font-size:15px; font-weight:600; margin-bottom:16px; color:var(--color-text-primary); }
+
+/* ===== TRANSACTIONS ===== */
+.filter-bar { display:flex; align-items:flex-end; gap:12px; margin-bottom:20px; flex-wrap:wrap; }
+.filter-bar .input-group { min-width:140px; }
+.filter-bar select, .filter-bar input { padding:8px 12px; font-size:13px; }
+.pagination { display:flex; align-items:center; justify-content:space-between; margin-top:16px; }
+.pagination-info { font-size:13px; color:var(--color-text-tertiary); }
+.pagination-btns { display:flex; gap:8px; }
+
+/* ===== TRANSACTION DETAIL ===== */
+.detail-header { display:flex; align-items:center; gap:12px; margin-bottom:28px; }
+.back-btn { display:flex; align-items:center; justify-content:center; width:36px; height:36px; border-radius:var(--radius-control); border:1px solid var(--color-border); background:transparent; color:var(--color-text-secondary); cursor:pointer; transition:all 200ms ease; font-size:18px; }
+.back-btn:hover { border-color:var(--color-text-tertiary); color:var(--color-text-primary); }
+.detail-title { font-size:16px; font-weight:600; }
+.detail-title .mono { font-weight:400; color:var(--color-text-tertiary); font-size:13px; }
+
+.detail-summary { display:flex; align-items:center; gap:20px; margin-bottom:32px; padding:24px; }
+.detail-amount { font-size:32px; font-weight:700; }
+
+/* ===== TIMELINE ===== */
+.timeline { position:relative; padding-left:28px; margin-bottom:32px; }
+.timeline::before { content:''; position:absolute; left:9px; top:8px; bottom:8px; width:2px; background:var(--color-border); }
+.timeline-step { position:relative; padding:0 0 24px 20px; }
+.timeline-step:last-child { padding-bottom:0; }
+.timeline-dot { position:absolute; left:-23px; top:4px; width:14px; height:14px; border-radius:50%; border:2px solid; }
+.timeline-dot.success { border-color:var(--color-success); background:rgba(61,255,139,0.2); }
+.timeline-dot.info { border-color:var(--color-info); background:rgba(77,163,255,0.2); }
+.timeline-dot.warning { border-color:var(--color-warning); background:rgba(255,204,0,0.2); }
+.timeline-dot.danger { border-color:var(--color-danger); background:rgba(255,77,77,0.2); }
+.timeline-title { font-size:14px; font-weight:600; color:var(--color-text-primary); }
+.timeline-time { font-size:12px; color:var(--color-text-tertiary); margin-top:2px; }
+.timeline-elapsed { font-size:11px; color:var(--color-text-tertiary); font-style:italic; }
+
+.detail-grid { display:grid; grid-template-columns:1fr 1fr; gap:20px; margin-bottom:28px; }
+.detail-section h3 { font-size:13px; font-weight:600; color:var(--color-text-tertiary); text-transform:uppercase; letter-spacing:0.5px; margin-bottom:12px; }
+.detail-row { display:flex; justify-content:space-between; padding:8px 0; border-bottom:1px solid rgba(39,54,74,0.4); }
+.detail-row-label { font-size:13px; color:var(--color-text-tertiary); }
+.detail-row-value { font-size:13px; color:var(--color-text-primary); text-align:right; }
+
+.code-block { background:var(--color-secondary-bg); border:1px solid var(--color-border); border-radius:var(--radius-card); padding:20px; font-family:var(--font-mono); font-size:12px; line-height:1.7; color:var(--color-text-secondary); overflow-x:auto; white-space:pre; margin-bottom:24px; }
+.detail-actions { display:flex; gap:12px; flex-wrap:wrap; }
+
+/* ===== PROVIDERS ===== */
+.providers-grid { display:grid; grid-template-columns:1fr 1fr; gap:20px; margin-bottom:28px; }
+.provider-panel { padding:28px; position:relative; }
+.provider-panel.active-provider { border-left:3px solid var(--color-lime); }
+.provider-panel-name { font-size:18px; font-weight:700; margin-bottom:8px; display:flex; align-items:center; gap:10px; }
+.provider-panel-desc { font-size:13px; color:var(--color-text-secondary); margin-bottom:16px; }
+.provider-features { list-style:none; margin-bottom:20px; }
+.provider-features li { padding:6px 0; font-size:13px; color:var(--color-text-secondary); display:flex; align-items:center; gap:8px; }
+.provider-features li::before { content:''; width:6px; height:6px; border-radius:50%; background:var(--color-text-tertiary); flex-shrink:0; }
+
+/* ===== MODAL ===== */
+.modal-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.7); z-index:1000; align-items:center; justify-content:center; }
+.modal-overlay.visible { display:flex; }
+.modal { background:var(--color-surface); border:1px solid var(--color-border); border-radius:var(--radius-card); padding:32px; max-width:440px; width:90%; }
+.modal h2 { font-size:18px; font-weight:600; margin-bottom:12px; }
+.modal p { font-size:14px; color:var(--color-text-secondary); margin-bottom:24px; line-height:1.6; }
+.modal-actions { display:flex; gap:12px; justify-content:flex-end; }
+
+/* ===== WEBHOOKS ===== */
+.tabs { display:flex; gap:4px; margin-bottom:20px; }
+.tab-btn { padding:8px 20px; border-radius:var(--radius-control); border:1px solid var(--color-border); background:transparent; color:var(--color-text-secondary); font-family:var(--font-family); font-size:13px; font-weight:600; cursor:pointer; transition:all 200ms ease; }
+.tab-btn.active { background:var(--color-lime-dim); color:var(--color-lime); border-color:transparent; }
+.tab-btn:hover:not(.active) { border-color:var(--color-text-tertiary); }
+.tab-content { display:none; }
+.tab-content.active { display:block; }
+.webhook-payload { display:none; background:var(--color-secondary-bg); border:1px solid var(--color-border); border-radius:var(--radius-control); padding:14px; margin-top:8px; font-family:var(--font-mono); font-size:11px; color:var(--color-text-secondary); white-space:pre; line-height:1.6; }
+.webhook-payload.visible { display:block; }
+
+/* ===== APPS ===== */
+.apps-grid { display:grid; grid-template-columns:repeat(3, 1fr); gap:20px; margin-bottom:24px; }
+.app-card { padding:24px; }
+.app-card-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:12px; }
+.app-name { font-size:16px; font-weight:600; }
+.status-dot { width:8px; height:8px; border-radius:50%; display:inline-block; }
+.status-dot.active { background:var(--color-success); }
+.app-detail { font-size:13px; color:var(--color-text-secondary); margin-bottom:6px; }
+.app-detail .mono { font-size:12px; color:var(--color-text-tertiary); }
+.inline-form { display:none; margin-top:20px; padding:24px; }
+.inline-form.visible { display:block; }
+.inline-form .input-group { margin-bottom:16px; }
+.inline-form-actions { display:flex; gap:12px; }
+
+/* ===== SETTINGS ===== */
+.settings-section { margin-bottom:36px; }
+.settings-section h2 { font-size:16px; font-weight:600; margin-bottom:16px; padding-bottom:12px; border-bottom:1px solid var(--color-border); }
+.toggle-row { display:flex; align-items:center; justify-content:space-between; padding:14px 0; border-bottom:1px solid rgba(39,54,74,0.3); }
+.toggle-label { font-size:14px; font-weight:500; }
+.toggle-label .mono { font-size:12px; color:var(--color-text-tertiary); display:block; margin-top:2px; }
+.toggle { position:relative; width:48px; height:24px; cursor:pointer; flex-shrink:0; }
+.toggle input { display:none; }
+.toggle-track { position:absolute; inset:0; background:transparent; border:2px solid var(--color-border); border-radius:12px; transition:all 200ms ease; }
+.toggle-thumb { position:absolute; top:2px; left:2px; width:20px; height:20px; border-radius:50%; background:var(--color-text-tertiary); transition:all 200ms ease; }
+.toggle input:checked ~ .toggle-track { background:var(--color-lime); border-color:var(--color-lime); }
+.toggle input:checked ~ .toggle-thumb { left:26px; background:#0b0f14; }
+.range-group { display:flex; align-items:center; gap:16px; }
+.range-group input[type="range"] { flex:1; -webkit-appearance:none; height:6px; background:var(--color-border); border-radius:3px; outline:none; border:none; padding:0; }
+.range-group input[type="range"]::-webkit-slider-thumb { -webkit-appearance:none; width:18px; height:18px; border-radius:50%; background:var(--color-lime); cursor:pointer; }
+.range-value { font-size:14px; font-weight:600; color:var(--color-lime); min-width:32px; text-align:right; }
+.settings-input-row { display:flex; align-items:flex-end; gap:16px; margin-bottom:12px; }
+.settings-input-row .input-group { flex:1; }
+
+/* ===== RESPONSIVE TWEAKS ===== */
+@media (max-width: 1100px) {
+  .kpi-grid { grid-template-columns:repeat(2, 1fr); }
+  .providers-grid { grid-template-columns:1fr; }
+  .apps-grid { grid-template-columns:1fr 1fr; }
+  .detail-grid { grid-template-columns:1fr; }
+}
+</style>
+</head>
+<body>
+
+<!-- ========== SCREEN 1: LOGIN ========== -->
+<div id="screen-login" class="screen active">
+  <div class="login-wrapper">
+    <div class="login-card card">
+      <div class="login-logo">&#x2B21; ECP Pay</div>
+      <div class="login-subtitle">Payment Service</div>
+      <div class="input-group">
+        <label>Email</label>
+        <input type="email" id="login-email" placeholder="admin@ecp-pay.com" value="edson@ecp-pay.com">
+      </div>
+      <div class="input-group">
+        <label>Senha</label>
+        <input type="password" id="login-password" placeholder="••••••••" value="••••••••">
+      </div>
+      <button class="btn btn-primary" onclick="navigateTo('screen-dashboard')">Entrar</button>
+      <div class="login-footer">Ecossistema ECP &mdash; ecp-pay admin</div>
+    </div>
+  </div>
+</div>
+
+<!-- ========== SCREEN 2: DASHBOARD ========== -->
+<div id="screen-dashboard" class="screen">
+  <div class="app-layout">
+    <nav class="sidebar" id="sidebar">
+      <div class="sidebar-logo">&#x2B21; ECP Pay</div>
+      <div class="sidebar-subtitle">Payment Service</div>
+      <div class="sidebar-nav">
+        <div class="nav-item active" data-screen="screen-dashboard" onclick="navigateTo('screen-dashboard')"><span class="nav-icon">&#9679;</span> Dashboard</div>
+        <div class="nav-item" data-screen="screen-transactions" onclick="navigateTo('screen-transactions')"><span class="nav-icon">&#128203;</span> Transa&ccedil;&otilde;es</div>
+        <div class="nav-item" data-screen="screen-providers" onclick="navigateTo('screen-providers')"><span class="nav-icon">&#128268;</span> Providers</div>
+        <div class="nav-item" data-screen="screen-webhooks" onclick="navigateTo('screen-webhooks')"><span class="nav-icon">&#128276;</span> Webhooks</div>
+        <div class="nav-item" data-screen="screen-apps" onclick="navigateTo('screen-apps')"><span class="nav-icon">&#128241;</span> Apps</div>
+        <div class="nav-item" data-screen="screen-settings" onclick="navigateTo('screen-settings')"><span class="nav-icon">&#9881;</span> Configura&ccedil;&otilde;es</div>
+      </div>
+      <div class="sidebar-footer">
+        <div class="provider-indicator">
+          <span class="provider-dot internal"></span>
+          Provider: INTERNAL
+        </div>
+      </div>
+    </nav>
+    <div class="main-area">
+      <div class="top-header">
+        <h1>Dashboard</h1>
+        <div class="header-right">
+          <span class="badge badge-warning">&#9679; INTERNAL ativo</span>
+          <span class="user-name">Edson Portilho</span>
+        </div>
+      </div>
+      <div class="internal-banner">&#9888;&#65039; MODO INTERNAL &mdash; transa&ccedil;&otilde;es simuladas</div>
+      <div class="content-area">
+        <div class="kpi-grid">
+          <div class="card kpi-card">
+            <div class="kpi-label">Volume Total</div>
+            <div class="kpi-value">R$ 47.850,00</div>
+            <div class="kpi-sub">&#8593; 12% vs. ontem</div>
+          </div>
+          <div class="card kpi-card">
+            <div class="kpi-label">Transa&ccedil;&otilde;es</div>
+            <div class="kpi-value">234</div>
+            <div class="kpi-sub">&#8593; 8 novas na &uacute;ltima hora</div>
+          </div>
+          <div class="card kpi-card">
+            <div class="kpi-label">Taxa de Sucesso</div>
+            <div class="kpi-value">96,5%</div>
+            <div class="kpi-sub">8 falhas hoje</div>
+          </div>
+          <div class="card kpi-card">
+            <div class="kpi-label">Receita / hora</div>
+            <div class="kpi-value">R$ 1.993,75</div>
+            <div class="kpi-sub">M&eacute;dia das &uacute;ltimas 24h</div>
+          </div>
+          <div class="card kpi-card">
+            <div class="kpi-label">Tokens Ativos</div>
+            <div class="kpi-value">12</div>
+            <div class="kpi-sub">3 apps registrados</div>
+          </div>
+          <div class="card kpi-card">
+            <div class="kpi-label">Webhooks Pendentes</div>
+            <div class="kpi-value" style="color:var(--color-warning)">3</div>
+            <div class="kpi-sub">2 retries em andamento</div>
+          </div>
+        </div>
+
+        <div class="card provider-card" style="margin-bottom:28px">
+          <div class="provider-card-header">
+            <div class="provider-card-title">
+              <span class="badge badge-warning">INTERNAL</span>
+              Provider ativo
+            </div>
+            <button class="btn btn-secondary btn-sm" onclick="navigateTo('screen-providers')">Gerenciar providers</button>
+          </div>
+          <div class="provider-meta">
+            <div class="provider-meta-item">Desde <strong>29/03/2026 14:30</strong></div>
+            <div class="provider-meta-item"><strong>847</strong> transa&ccedil;&otilde;es processadas</div>
+          </div>
+        </div>
+
+        <div class="section-title">&Uacute;ltimas transa&ccedil;&otilde;es</div>
+        <div class="table-wrapper">
+          <table>
+            <thead><tr><th>App</th><th>Tipo</th><th>Valor</th><th>Status</th><th>Data</th></tr></thead>
+            <tbody>
+              <tr class="clickable" onclick="showTxDetail()"><td><span class="badge badge-info">ecp-bank</span></td><td>&#9889; Pix</td><td>R$ 2.500,00</td><td><span class="badge badge-success">completed</span></td><td>28/03/2026 16:42</td></tr>
+              <tr class="clickable" onclick="showTxDetail()"><td><span class="badge badge-lime">ecp-emps</span></td><td>&#128179; Card</td><td>R$ 189,90</td><td><span class="badge badge-warning">pending</span></td><td>28/03/2026 16:38</td></tr>
+              <tr class="clickable" onclick="showTxDetail()"><td><span class="badge badge-info">ecp-bank</span></td><td>&#128196; Boleto</td><td>R$ 1.340,00</td><td><span class="badge badge-info">processing</span></td><td>28/03/2026 16:35</td></tr>
+              <tr class="clickable" onclick="showTxDetail()"><td><span class="badge badge-neutral">ecp-food</span></td><td>&#9889; Pix</td><td>R$ 67,50</td><td><span class="badge badge-success">completed</span></td><td>28/03/2026 16:30</td></tr>
+              <tr class="clickable" onclick="showTxDetail()"><td><span class="badge badge-info">ecp-bank</span></td><td>&#128179; Card</td><td>R$ 4.200,00</td><td><span class="badge badge-danger">failed</span></td><td>28/03/2026 16:25</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ========== SCREEN 3: TRANSACTIONS ========== -->
+<div id="screen-transactions" class="screen">
+  <div class="app-layout">
+    <nav class="sidebar">
+      <div class="sidebar-logo">&#x2B21; ECP Pay</div>
+      <div class="sidebar-subtitle">Payment Service</div>
+      <div class="sidebar-nav">
+        <div class="nav-item" data-screen="screen-dashboard" onclick="navigateTo('screen-dashboard')"><span class="nav-icon">&#9679;</span> Dashboard</div>
+        <div class="nav-item active" data-screen="screen-transactions" onclick="navigateTo('screen-transactions')"><span class="nav-icon">&#128203;</span> Transa&ccedil;&otilde;es</div>
+        <div class="nav-item" data-screen="screen-providers" onclick="navigateTo('screen-providers')"><span class="nav-icon">&#128268;</span> Providers</div>
+        <div class="nav-item" data-screen="screen-webhooks" onclick="navigateTo('screen-webhooks')"><span class="nav-icon">&#128276;</span> Webhooks</div>
+        <div class="nav-item" data-screen="screen-apps" onclick="navigateTo('screen-apps')"><span class="nav-icon">&#128241;</span> Apps</div>
+        <div class="nav-item" data-screen="screen-settings" onclick="navigateTo('screen-settings')"><span class="nav-icon">&#9881;</span> Configura&ccedil;&otilde;es</div>
+      </div>
+      <div class="sidebar-footer"><div class="provider-indicator"><span class="provider-dot internal"></span> Provider: INTERNAL</div></div>
+    </nav>
+    <div class="main-area">
+      <div class="top-header">
+        <h1>Transa&ccedil;&otilde;es</h1>
+        <div class="header-right"><span class="badge badge-warning">&#9679; INTERNAL ativo</span><span class="user-name">Edson Portilho</span></div>
+      </div>
+      <div class="internal-banner">&#9888;&#65039; MODO INTERNAL &mdash; transa&ccedil;&otilde;es simuladas</div>
+      <div class="content-area">
+        <div class="filter-bar">
+          <div class="input-group"><label>App</label><select><option>Todos</option><option>ecp-bank</option><option>ecp-emps</option><option>ecp-food</option></select></div>
+          <div class="input-group"><label>Tipo</label><select><option>Todos</option><option>Pix</option><option>Card</option><option>Boleto</option></select></div>
+          <div class="input-group"><label>Status</label><select><option>Todos</option><option>Pending</option><option>Processing</option><option>Completed</option><option>Failed</option><option>Refunded</option></select></div>
+          <div class="input-group"><label>Buscar</label><input type="search" placeholder="ID, cliente..."></div>
+          <button class="btn btn-secondary btn-sm" style="margin-bottom:1px">Filtrar</button>
+        </div>
+        <div class="table-wrapper">
+          <table>
+            <thead><tr><th>ID</th><th>App</th><th>Tipo</th><th>Valor</th><th>Cliente</th><th>Status</th><th>Provider</th><th>Data</th></tr></thead>
+            <tbody>
+              <tr class="clickable" onclick="showTxDetail()"><td><span class="mono truncate">tx_a1b2c3d4-e5f6</span></td><td><span class="badge badge-info">ecp-bank</span></td><td><span style="color:var(--color-lime)">&#9889;</span> Pix</td><td>R$ 2.500,00</td><td>Carlos Silva</td><td><span class="badge badge-success">completed</span></td><td><span class="badge badge-warning">INTERNAL</span></td><td>28/03/2026 16:42</td></tr>
+              <tr class="clickable" onclick="showTxDetail()"><td><span class="mono truncate">tx_b2c3d4e5-f6a7</span></td><td><span class="badge badge-lime">ecp-emps</span></td><td><span style="color:var(--color-info)">&#128179;</span> Card</td><td>R$ 189,90</td><td>Ana Oliveira</td><td><span class="badge badge-warning">pending</span></td><td><span class="badge badge-warning">INTERNAL</span></td><td>28/03/2026 16:38</td></tr>
+              <tr class="clickable" onclick="showTxDetail()"><td><span class="mono truncate">tx_c3d4e5f6-a7b8</span></td><td><span class="badge badge-info">ecp-bank</span></td><td><span style="color:var(--color-warning)">&#128196;</span> Boleto</td><td>R$ 1.340,00</td><td>Roberto Santos</td><td><span class="badge badge-info">processing</span></td><td><span class="badge badge-warning">INTERNAL</span></td><td>28/03/2026 16:35</td></tr>
+              <tr class="clickable" onclick="showTxDetail()"><td><span class="mono truncate">tx_d4e5f6a7-b8c9</span></td><td><span class="badge badge-neutral">ecp-food</span></td><td><span style="color:var(--color-lime)">&#9889;</span> Pix</td><td>R$ 67,50</td><td>Fernanda Costa</td><td><span class="badge badge-success">completed</span></td><td><span class="badge badge-warning">INTERNAL</span></td><td>28/03/2026 16:30</td></tr>
+              <tr class="clickable" onclick="showTxDetail()"><td><span class="mono truncate">tx_e5f6a7b8-c9d0</span></td><td><span class="badge badge-info">ecp-bank</span></td><td><span style="color:var(--color-info)">&#128179;</span> Card</td><td>R$ 4.200,00</td><td>Lucas Pereira</td><td><span class="badge badge-danger">failed</span></td><td><span class="badge badge-warning">INTERNAL</span></td><td>28/03/2026 16:25</td></tr>
+              <tr class="clickable" onclick="showTxDetail()"><td><span class="mono truncate">tx_f6a7b8c9-d0e1</span></td><td><span class="badge badge-lime">ecp-emps</span></td><td><span style="color:var(--color-lime)">&#9889;</span> Pix</td><td>R$ 890,00</td><td>Mariana Lima</td><td><span class="badge badge-success">completed</span></td><td><span class="badge badge-warning">INTERNAL</span></td><td>28/03/2026 16:18</td></tr>
+              <tr class="clickable" onclick="showTxDetail()"><td><span class="mono truncate">tx_a7b8c9d0-e1f2</span></td><td><span class="badge badge-neutral">ecp-food</span></td><td><span style="color:var(--color-info)">&#128179;</span> Card</td><td>R$ 32,90</td><td>Pedro Almeida</td><td><span class="badge badge-success">completed</span></td><td><span class="badge badge-warning">INTERNAL</span></td><td>28/03/2026 16:12</td></tr>
+              <tr class="clickable" onclick="showTxDetail()"><td><span class="mono truncate">tx_b8c9d0e1-f2a3</span></td><td><span class="badge badge-info">ecp-bank</span></td><td><span style="color:var(--color-warning)">&#128196;</span> Boleto</td><td>R$ 5.600,00</td><td>Juliana Souza</td><td><span class="badge badge-neutral">refunded</span></td><td><span class="badge badge-warning">INTERNAL</span></td><td>28/03/2026 15:58</td></tr>
+              <tr class="clickable" onclick="showTxDetail()"><td><span class="mono truncate">tx_c9d0e1f2-a3b4</span></td><td><span class="badge badge-lime">ecp-emps</span></td><td><span style="color:var(--color-lime)">&#9889;</span> Pix</td><td>R$ 1.150,00</td><td>Thiago Rocha</td><td><span class="badge badge-success">completed</span></td><td><span class="badge badge-warning">INTERNAL</span></td><td>28/03/2026 15:45</td></tr>
+              <tr class="clickable" onclick="showTxDetail()"><td><span class="mono truncate">tx_d0e1f2a3-b4c5</span></td><td><span class="badge badge-info">ecp-bank</span></td><td><span style="color:var(--color-lime)">&#9889;</span> Pix</td><td>R$ 320,00</td><td>Beatriz Mendes</td><td><span class="badge badge-neutral">expired</span></td><td><span class="badge badge-warning">INTERNAL</span></td><td>28/03/2026 15:30</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="pagination">
+          <span class="pagination-info">Mostrando 1-10 de 234</span>
+          <div class="pagination-btns">
+            <button class="btn btn-secondary btn-sm" disabled>Anterior</button>
+            <button class="btn btn-secondary btn-sm">Pr&oacute;ximo</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ========== SCREEN 4: TRANSACTION DETAIL ========== -->
+<div id="screen-tx-detail" class="screen">
+  <div class="app-layout">
+    <nav class="sidebar">
+      <div class="sidebar-logo">&#x2B21; ECP Pay</div>
+      <div class="sidebar-subtitle">Payment Service</div>
+      <div class="sidebar-nav">
+        <div class="nav-item" data-screen="screen-dashboard" onclick="navigateTo('screen-dashboard')"><span class="nav-icon">&#9679;</span> Dashboard</div>
+        <div class="nav-item active" data-screen="screen-transactions" onclick="navigateTo('screen-transactions')"><span class="nav-icon">&#128203;</span> Transa&ccedil;&otilde;es</div>
+        <div class="nav-item" data-screen="screen-providers" onclick="navigateTo('screen-providers')"><span class="nav-icon">&#128268;</span> Providers</div>
+        <div class="nav-item" data-screen="screen-webhooks" onclick="navigateTo('screen-webhooks')"><span class="nav-icon">&#128276;</span> Webhooks</div>
+        <div class="nav-item" data-screen="screen-apps" onclick="navigateTo('screen-apps')"><span class="nav-icon">&#128241;</span> Apps</div>
+        <div class="nav-item" data-screen="screen-settings" onclick="navigateTo('screen-settings')"><span class="nav-icon">&#9881;</span> Configura&ccedil;&otilde;es</div>
+      </div>
+      <div class="sidebar-footer"><div class="provider-indicator"><span class="provider-dot internal"></span> Provider: INTERNAL</div></div>
+    </nav>
+    <div class="main-area">
+      <div class="top-header">
+        <h1>Detalhe da Transa&ccedil;&atilde;o</h1>
+        <div class="header-right"><span class="badge badge-warning">&#9679; INTERNAL ativo</span><span class="user-name">Edson Portilho</span></div>
+      </div>
+      <div class="internal-banner">&#9888;&#65039; MODO INTERNAL &mdash; transa&ccedil;&otilde;es simuladas</div>
+      <div class="content-area">
+        <div class="detail-header">
+          <button class="back-btn" onclick="goBack()">&larr;</button>
+          <div class="detail-title">Transa&ccedil;&atilde;o <span class="mono">tx_a1b2c3d4-e5f6-7890-abcd-ef1234567890</span></div>
+        </div>
+
+        <div class="card detail-summary">
+          <span class="badge badge-success" style="font-size:13px;padding:6px 16px">COMPLETED</span>
+          <span class="detail-amount">R$ 2.500,00</span>
+          <span class="badge badge-lime"><span style="color:var(--color-lime)">&#9889;</span> Pix</span>
+        </div>
+
+        <div class="section-title">Timeline</div>
+        <div class="timeline">
+          <div class="timeline-step">
+            <div class="timeline-dot info"></div>
+            <div class="timeline-title">Criada</div>
+            <div class="timeline-time">28/03/2026 16:42:00</div>
+          </div>
+          <div class="timeline-step">
+            <div class="timeline-dot info"></div>
+            <div class="timeline-title">Processando</div>
+            <div class="timeline-time">28/03/2026 16:42:01</div>
+            <div class="timeline-elapsed">+1s</div>
+          </div>
+          <div class="timeline-step">
+            <div class="timeline-dot success"></div>
+            <div class="timeline-title">Webhook Recebido</div>
+            <div class="timeline-time">28/03/2026 16:42:06</div>
+            <div class="timeline-elapsed">+5s</div>
+          </div>
+          <div class="timeline-step">
+            <div class="timeline-dot success"></div>
+            <div class="timeline-title">Callback Enviado</div>
+            <div class="timeline-time">28/03/2026 16:42:07</div>
+            <div class="timeline-elapsed">+1s</div>
+          </div>
+          <div class="timeline-step">
+            <div class="timeline-dot success"></div>
+            <div class="timeline-title">Conclu&iacute;da</div>
+            <div class="timeline-time">28/03/2026 16:42:07</div>
+            <div class="timeline-elapsed">+0s &mdash; Total: 7s</div>
+          </div>
+        </div>
+
+        <div class="detail-grid">
+          <div class="card detail-section">
+            <h3>Cliente</h3>
+            <div class="detail-row"><span class="detail-row-label">Nome</span><span class="detail-row-value">Carlos Silva</span></div>
+            <div class="detail-row"><span class="detail-row-label">Documento</span><span class="detail-row-value mono">***.***.789-00</span></div>
+            <div class="detail-row"><span class="detail-row-label">Email</span><span class="detail-row-value">carlos.silva@email.com</span></div>
+          </div>
+          <div class="card detail-section">
+            <h3>Pagamento</h3>
+            <div class="detail-row"><span class="detail-row-label">Tipo</span><span class="detail-row-value">Pix</span></div>
+            <div class="detail-row"><span class="detail-row-label">Valor</span><span class="detail-row-value">R$ 2.500,00</span></div>
+            <div class="detail-row"><span class="detail-row-label">Chave Pix</span><span class="detail-row-value mono">carlos@email.com</span></div>
+          </div>
+          <div class="card detail-section">
+            <h3>Provider</h3>
+            <div class="detail-row"><span class="detail-row-label">Nome</span><span class="detail-row-value">INTERNAL</span></div>
+            <div class="detail-row"><span class="detail-row-label">Provider ID</span><span class="detail-row-value mono">int_sim_7f8a9b0c</span></div>
+            <div class="detail-row"><span class="detail-row-label">Modo</span><span class="detail-row-value">Simula&ccedil;&atilde;o</span></div>
+          </div>
+          <div class="card detail-section">
+            <h3>Metadados</h3>
+            <div class="detail-row"><span class="detail-row-label">Source App</span><span class="detail-row-value">ecp-bank</span></div>
+            <div class="detail-row"><span class="detail-row-label">Idempotency Key</span><span class="detail-row-value mono" style="font-size:11px">idem_8f2a1b3c4d5e</span></div>
+            <div class="detail-row"><span class="detail-row-label">Callback URL</span><span class="detail-row-value mono" style="font-size:11px">https://ecp-bank/api/cb</span></div>
+          </div>
+        </div>
+
+        <div class="section-title">Payload JSON</div>
+        <div class="code-block">{
+  "transaction_id": "tx_a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+  "type": "pix",
+  "amount": 250000,
+  "currency": "BRL",
+  "status": "completed",
+  "customer": {
+    "name": "Carlos Silva",
+    "document": "***.***.789-00",
+    "email": "carlos.silva@email.com"
+  },
+  "pix": {
+    "key": "carlos@email.com",
+    "key_type": "email",
+    "end_to_end_id": "E123456789012345678901234567890"
+  },
+  "provider": "internal",
+  "created_at": "2026-03-28T16:42:00.000Z",
+  "completed_at": "2026-03-28T16:42:07.000Z"
+}</div>
+
+        <div class="detail-actions">
+          <button class="btn btn-danger" onclick="alert('Estorno solicitado para tx_a1b2c3d4')">Estornar</button>
+          <button class="btn btn-secondary" onclick="alert('Callback reenviado com sucesso!')">Reenviar callback</button>
+          <button class="btn btn-primary" onclick="alert('Simulando pagamento...\nStatus: completed em 5s')">Simular pagamento</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ========== SCREEN 5: PROVIDERS ========== -->
+<div id="screen-providers" class="screen">
+  <div class="app-layout">
+    <nav class="sidebar">
+      <div class="sidebar-logo">&#x2B21; ECP Pay</div>
+      <div class="sidebar-subtitle">Payment Service</div>
+      <div class="sidebar-nav">
+        <div class="nav-item" data-screen="screen-dashboard" onclick="navigateTo('screen-dashboard')"><span class="nav-icon">&#9679;</span> Dashboard</div>
+        <div class="nav-item" data-screen="screen-transactions" onclick="navigateTo('screen-transactions')"><span class="nav-icon">&#128203;</span> Transa&ccedil;&otilde;es</div>
+        <div class="nav-item active" data-screen="screen-providers" onclick="navigateTo('screen-providers')"><span class="nav-icon">&#128268;</span> Providers</div>
+        <div class="nav-item" data-screen="screen-webhooks" onclick="navigateTo('screen-webhooks')"><span class="nav-icon">&#128276;</span> Webhooks</div>
+        <div class="nav-item" data-screen="screen-apps" onclick="navigateTo('screen-apps')"><span class="nav-icon">&#128241;</span> Apps</div>
+        <div class="nav-item" data-screen="screen-settings" onclick="navigateTo('screen-settings')"><span class="nav-icon">&#9881;</span> Configura&ccedil;&otilde;es</div>
+      </div>
+      <div class="sidebar-footer"><div class="provider-indicator"><span class="provider-dot internal"></span> Provider: INTERNAL</div></div>
+    </nav>
+    <div class="main-area">
+      <div class="top-header">
+        <h1>Providers de Pagamento</h1>
+        <div class="header-right"><span class="badge badge-warning">&#9679; INTERNAL ativo</span><span class="user-name">Edson Portilho</span></div>
+      </div>
+      <div class="internal-banner">&#9888;&#65039; MODO INTERNAL &mdash; transa&ccedil;&otilde;es simuladas</div>
+      <div class="content-area">
+        <div class="detail-header">
+          <button class="back-btn" onclick="goBack()">&larr;</button>
+          <div class="detail-title">Providers de Pagamento</div>
+        </div>
+        <div class="providers-grid">
+          <div class="card provider-panel active-provider">
+            <div class="provider-panel-name"><span class="badge badge-warning">INTERNAL</span> <span class="badge badge-lime">ATIVO</span></div>
+            <div class="provider-panel-desc">Provider interno para simula&ccedil;&atilde;o e desenvolvimento. Nenhuma integra&ccedil;&atilde;o externa necess&aacute;ria.</div>
+            <ul class="provider-features">
+              <li>Self-managed</li>
+              <li>Simula&ccedil;&atilde;o local</li>
+              <li>Zero custo</li>
+              <li>Auto-approve configur&aacute;vel</li>
+            </ul>
+          </div>
+          <div class="card provider-panel">
+            <div class="provider-panel-name"><span class="badge badge-lime">ASAAS</span></div>
+            <div class="provider-panel-desc">Gateway de pagamento real com suporte a Pix, Cart&atilde;o e Boleto. Ideal para produ&ccedil;&atilde;o.</div>
+            <ul class="provider-features">
+              <li>Gateway real</li>
+              <li>Transa&ccedil;&otilde;es reais</li>
+              <li>Taxas aplic&aacute;veis</li>
+              <li>Webhook autom&aacute;tico</li>
+            </ul>
+            <button class="btn btn-secondary" onclick="showModal()">Ativar Asaas</button>
+          </div>
+        </div>
+
+        <div style="display:flex;gap:24px;margin-bottom:28px">
+          <div style="font-size:13px;color:var(--color-text-secondary)">Ativo desde: <strong>29/03/2026 14:30</strong></div>
+          <div style="font-size:13px;color:var(--color-text-secondary)">Transa&ccedil;&otilde;es no modo atual: <strong>847</strong></div>
+        </div>
+
+        <div class="section-title">Hist&oacute;rico de Altera&ccedil;&otilde;es</div>
+        <div class="table-wrapper">
+          <table>
+            <thead><tr><th>Data</th><th>De</th><th>Para</th><th>Respons&aacute;vel</th></tr></thead>
+            <tbody>
+              <tr><td>29/03/2026 14:30</td><td><span class="badge badge-lime">ASAAS</span></td><td><span class="badge badge-warning">INTERNAL</span></td><td>Edson Portilho</td></tr>
+              <tr><td>15/03/2026 09:00</td><td><span class="badge badge-warning">INTERNAL</span></td><td><span class="badge badge-lime">ASAAS</span></td><td>Edson Portilho</td></tr>
+              <tr><td>01/03/2026 10:00</td><td>&mdash;</td><td><span class="badge badge-warning">INTERNAL</span></td><td>Sistema (inicial)</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ========== SCREEN 6: WEBHOOKS ========== -->
+<div id="screen-webhooks" class="screen">
+  <div class="app-layout">
+    <nav class="sidebar">
+      <div class="sidebar-logo">&#x2B21; ECP Pay</div>
+      <div class="sidebar-subtitle">Payment Service</div>
+      <div class="sidebar-nav">
+        <div class="nav-item" data-screen="screen-dashboard" onclick="navigateTo('screen-dashboard')"><span class="nav-icon">&#9679;</span> Dashboard</div>
+        <div class="nav-item" data-screen="screen-transactions" onclick="navigateTo('screen-transactions')"><span class="nav-icon">&#128203;</span> Transa&ccedil;&otilde;es</div>
+        <div class="nav-item" data-screen="screen-providers" onclick="navigateTo('screen-providers')"><span class="nav-icon">&#128268;</span> Providers</div>
+        <div class="nav-item active" data-screen="screen-webhooks" onclick="navigateTo('screen-webhooks')"><span class="nav-icon">&#128276;</span> Webhooks</div>
+        <div class="nav-item" data-screen="screen-apps" onclick="navigateTo('screen-apps')"><span class="nav-icon">&#128241;</span> Apps</div>
+        <div class="nav-item" data-screen="screen-settings" onclick="navigateTo('screen-settings')"><span class="nav-icon">&#9881;</span> Configura&ccedil;&otilde;es</div>
+      </div>
+      <div class="sidebar-footer"><div class="provider-indicator"><span class="provider-dot internal"></span> Provider: INTERNAL</div></div>
+    </nav>
+    <div class="main-area">
+      <div class="top-header">
+        <h1>Webhooks</h1>
+        <div class="header-right"><span class="badge badge-warning">&#9679; INTERNAL ativo</span><span class="user-name">Edson Portilho</span></div>
+      </div>
+      <div class="internal-banner">&#9888;&#65039; MODO INTERNAL &mdash; transa&ccedil;&otilde;es simuladas</div>
+      <div class="content-area">
+        <div class="detail-header">
+          <button class="back-btn" onclick="goBack()">&larr;</button>
+          <div class="detail-title">Webhooks</div>
+        </div>
+        <div class="tabs">
+          <button class="tab-btn active" onclick="switchTab('received', this)">Recebidos</button>
+          <button class="tab-btn" onclick="switchTab('sent', this)">Enviados</button>
+        </div>
+
+        <div id="tab-received" class="tab-content active">
+          <div class="table-wrapper">
+            <table>
+              <thead><tr><th>Event ID</th><th>Tipo</th><th>Transa&ccedil;&atilde;o</th><th>Processado</th><th>Data</th></tr></thead>
+              <tbody>
+                <tr>
+                  <td><span class="mono" style="cursor:pointer;color:var(--color-info)" onclick="toggleWebhookPayload('wp1')">evt_f1a2b3c4d5e6</span></td>
+                  <td>payment.completed</td><td><span class="mono truncate">tx_a1b2c3d4-e5f6</span></td><td><span class="badge badge-success">processado</span></td><td>28/03/2026 16:42</td>
+                </tr>
+                <tr><td colspan="5"><div id="wp1" class="webhook-payload">{
+  "event": "payment.completed",
+  "event_id": "evt_f1a2b3c4d5e6",
+  "transaction_id": "tx_a1b2c3d4-e5f6",
+  "amount": 250000,
+  "status": "completed",
+  "timestamp": "2026-03-28T16:42:06.000Z"
+}</div></td></tr>
+                <tr>
+                  <td><span class="mono" style="cursor:pointer;color:var(--color-info)" onclick="toggleWebhookPayload('wp2')">evt_a2b3c4d5e6f7</span></td>
+                  <td>payment.created</td><td><span class="mono truncate">tx_b2c3d4e5-f6a7</span></td><td><span class="badge badge-warning">pendente</span></td><td>28/03/2026 16:38</td>
+                </tr>
+                <tr><td colspan="5"><div id="wp2" class="webhook-payload">{
+  "event": "payment.created",
+  "event_id": "evt_a2b3c4d5e6f7",
+  "transaction_id": "tx_b2c3d4e5-f6a7",
+  "amount": 18990,
+  "status": "pending",
+  "timestamp": "2026-03-28T16:38:00.000Z"
+}</div></td></tr>
+                <tr>
+                  <td><span class="mono" style="cursor:pointer;color:var(--color-info)" onclick="toggleWebhookPayload('wp3')">evt_b3c4d5e6f7a8</span></td>
+                  <td>payment.failed</td><td><span class="mono truncate">tx_e5f6a7b8-c9d0</span></td><td><span class="badge badge-success">processado</span></td><td>28/03/2026 16:25</td>
+                </tr>
+                <tr><td colspan="5"><div id="wp3" class="webhook-payload">{
+  "event": "payment.failed",
+  "event_id": "evt_b3c4d5e6f7a8",
+  "transaction_id": "tx_e5f6a7b8-c9d0",
+  "amount": 420000,
+  "status": "failed",
+  "error": "card_declined",
+  "timestamp": "2026-03-28T16:25:00.000Z"
+}</div></td></tr>
+                <tr>
+                  <td><span class="mono" style="cursor:pointer;color:var(--color-info)" onclick="toggleWebhookPayload('wp4')">evt_c4d5e6f7a8b9</span></td>
+                  <td>payment.refunded</td><td><span class="mono truncate">tx_b8c9d0e1-f2a3</span></td><td><span class="badge badge-success">processado</span></td><td>28/03/2026 15:58</td>
+                </tr>
+                <tr><td colspan="5"><div id="wp4" class="webhook-payload">{
+  "event": "payment.refunded",
+  "event_id": "evt_c4d5e6f7a8b9",
+  "transaction_id": "tx_b8c9d0e1-f2a3",
+  "amount": 560000,
+  "status": "refunded",
+  "timestamp": "2026-03-28T15:58:00.000Z"
+}</div></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div id="tab-sent" class="tab-content">
+          <div class="table-wrapper">
+            <table>
+              <thead><tr><th>Transa&ccedil;&atilde;o</th><th>App Destino</th><th>Status</th><th>Tentativas</th><th>Data</th><th></th></tr></thead>
+              <tbody>
+                <tr><td><span class="mono truncate">tx_a1b2c3d4-e5f6</span></td><td>ecp-bank</td><td><span class="badge badge-success">delivered</span></td><td>1</td><td>28/03/2026 16:42</td><td></td></tr>
+                <tr><td><span class="mono truncate">tx_b2c3d4e5-f6a7</span></td><td>ecp-emps</td><td><span class="badge badge-danger">failed</span></td><td>3</td><td>28/03/2026 16:38</td><td><button class="btn btn-danger btn-sm" onclick="alert('Retry enviado para tx_b2c3d4e5-f6a7')">Retry</button></td></tr>
+                <tr><td><span class="mono truncate">tx_d4e5f6a7-b8c9</span></td><td>ecp-food</td><td><span class="badge badge-success">delivered</span></td><td>1</td><td>28/03/2026 16:30</td><td></td></tr>
+                <tr><td><span class="mono truncate">tx_e5f6a7b8-c9d0</span></td><td>ecp-bank</td><td><span class="badge badge-info">retrying</span></td><td>2</td><td>28/03/2026 16:25</td><td><button class="btn btn-danger btn-sm" onclick="alert('Retry enviado para tx_e5f6a7b8-c9d0')">Retry</button></td></tr>
+                <tr><td><span class="mono truncate">tx_f6a7b8c9-d0e1</span></td><td>ecp-emps</td><td><span class="badge badge-success">delivered</span></td><td>1</td><td>28/03/2026 16:18</td><td></td></tr>
+                <tr><td><span class="mono truncate">tx_b8c9d0e1-f2a3</span></td><td>ecp-bank</td><td><span class="badge badge-warning">pending</span></td><td>0</td><td>28/03/2026 15:58</td><td></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ========== SCREEN 7: APPS ========== -->
+<div id="screen-apps" class="screen">
+  <div class="app-layout">
+    <nav class="sidebar">
+      <div class="sidebar-logo">&#x2B21; ECP Pay</div>
+      <div class="sidebar-subtitle">Payment Service</div>
+      <div class="sidebar-nav">
+        <div class="nav-item" data-screen="screen-dashboard" onclick="navigateTo('screen-dashboard')"><span class="nav-icon">&#9679;</span> Dashboard</div>
+        <div class="nav-item" data-screen="screen-transactions" onclick="navigateTo('screen-transactions')"><span class="nav-icon">&#128203;</span> Transa&ccedil;&otilde;es</div>
+        <div class="nav-item" data-screen="screen-providers" onclick="navigateTo('screen-providers')"><span class="nav-icon">&#128268;</span> Providers</div>
+        <div class="nav-item" data-screen="screen-webhooks" onclick="navigateTo('screen-webhooks')"><span class="nav-icon">&#128276;</span> Webhooks</div>
+        <div class="nav-item active" data-screen="screen-apps" onclick="navigateTo('screen-apps')"><span class="nav-icon">&#128241;</span> Apps</div>
+        <div class="nav-item" data-screen="screen-settings" onclick="navigateTo('screen-settings')"><span class="nav-icon">&#9881;</span> Configura&ccedil;&otilde;es</div>
+      </div>
+      <div class="sidebar-footer"><div class="provider-indicator"><span class="provider-dot internal"></span> Provider: INTERNAL</div></div>
+    </nav>
+    <div class="main-area">
+      <div class="top-header">
+        <h1>Apps Registrados</h1>
+        <div class="header-right"><span class="badge badge-warning">&#9679; INTERNAL ativo</span><span class="user-name">Edson Portilho</span></div>
+      </div>
+      <div class="internal-banner">&#9888;&#65039; MODO INTERNAL &mdash; transa&ccedil;&otilde;es simuladas</div>
+      <div class="content-area">
+        <div class="detail-header">
+          <button class="back-btn" onclick="goBack()">&larr;</button>
+          <div class="detail-title">Apps Registrados</div>
+          <button class="btn btn-primary btn-sm" onclick="toggleNewAppForm()" style="margin-left:auto">Registrar novo app</button>
+        </div>
+
+        <div id="new-app-form" class="card inline-form">
+          <div class="section-title">Novo App</div>
+          <div class="input-group"><label>Nome do App</label><input type="text" placeholder="ex: ecp-store"></div>
+          <div class="input-group"><label>Callback URL</label><input type="text" placeholder="https://seu-app.com/api/payment-callback"></div>
+          <div class="inline-form-actions">
+            <button class="btn btn-primary btn-sm" onclick="alert('App registrado com sucesso!'); toggleNewAppForm()">Salvar</button>
+            <button class="btn btn-secondary btn-sm" onclick="toggleNewAppForm()">Cancelar</button>
+          </div>
+        </div>
+
+        <div class="apps-grid">
+          <div class="card app-card">
+            <div class="app-card-header">
+              <span class="app-name">ecp-bank</span>
+              <span style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--color-success)"><span class="status-dot active"></span> Ativo</span>
+            </div>
+            <div class="app-detail">API Key: <span class="mono">ecp-bank-d...key</span></div>
+            <div class="app-detail">Callback: <span class="mono" style="font-size:11px">https://ecp-bank.com/api/cb</span></div>
+            <div class="app-detail" style="margin-top:12px;color:var(--color-text-primary);font-weight:600">Volume: 12.450 transa&ccedil;&otilde;es</div>
+            <button class="btn btn-secondary btn-sm" style="margin-top:14px" onclick="alert('Nova API Key gerada para ecp-bank:\necp-bank-x8k2m9...newkey')">Regenerar API Key</button>
+          </div>
+          <div class="card app-card">
+            <div class="app-card-header">
+              <span class="app-name">ecp-emps</span>
+              <span style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--color-success)"><span class="status-dot active"></span> Ativo</span>
+            </div>
+            <div class="app-detail">API Key: <span class="mono">ecp-emps-a...key</span></div>
+            <div class="app-detail">Callback: <span class="mono" style="font-size:11px">https://ecp-emps.com/api/cb</span></div>
+            <div class="app-detail" style="margin-top:12px;color:var(--color-text-primary);font-weight:600">Volume: 8.320 transa&ccedil;&otilde;es</div>
+            <button class="btn btn-secondary btn-sm" style="margin-top:14px" onclick="alert('Nova API Key gerada para ecp-emps:\necp-emps-j5n7p2...newkey')">Regenerar API Key</button>
+          </div>
+          <div class="card app-card">
+            <div class="app-card-header">
+              <span class="app-name">ecp-food</span>
+              <span style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--color-success)"><span class="status-dot active"></span> Ativo</span>
+            </div>
+            <div class="app-detail">API Key: <span class="mono">ecp-food-m...key</span></div>
+            <div class="app-detail">Callback: <span class="mono" style="font-size:11px">https://ecp-food.com/api/cb</span></div>
+            <div class="app-detail" style="margin-top:12px;color:var(--color-text-primary);font-weight:600">Volume: 3.780 transa&ccedil;&otilde;es</div>
+            <button class="btn btn-secondary btn-sm" style="margin-top:14px" onclick="alert('Nova API Key gerada para ecp-food:\necp-food-q3r8t6...newkey')">Regenerar API Key</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ========== SCREEN 8: SETTINGS ========== -->
+<div id="screen-settings" class="screen">
+  <div class="app-layout">
+    <nav class="sidebar">
+      <div class="sidebar-logo">&#x2B21; ECP Pay</div>
+      <div class="sidebar-subtitle">Payment Service</div>
+      <div class="sidebar-nav">
+        <div class="nav-item" data-screen="screen-dashboard" onclick="navigateTo('screen-dashboard')"><span class="nav-icon">&#9679;</span> Dashboard</div>
+        <div class="nav-item" data-screen="screen-transactions" onclick="navigateTo('screen-transactions')"><span class="nav-icon">&#128203;</span> Transa&ccedil;&otilde;es</div>
+        <div class="nav-item" data-screen="screen-providers" onclick="navigateTo('screen-providers')"><span class="nav-icon">&#128268;</span> Providers</div>
+        <div class="nav-item" data-screen="screen-webhooks" onclick="navigateTo('screen-webhooks')"><span class="nav-icon">&#128276;</span> Webhooks</div>
+        <div class="nav-item" data-screen="screen-apps" onclick="navigateTo('screen-apps')"><span class="nav-icon">&#128241;</span> Apps</div>
+        <div class="nav-item active" data-screen="screen-settings" onclick="navigateTo('screen-settings')"><span class="nav-icon">&#9881;</span> Configura&ccedil;&otilde;es</div>
+      </div>
+      <div class="sidebar-footer"><div class="provider-indicator"><span class="provider-dot internal"></span> Provider: INTERNAL</div></div>
+    </nav>
+    <div class="main-area">
+      <div class="top-header">
+        <h1>Configura&ccedil;&otilde;es</h1>
+        <div class="header-right"><span class="badge badge-warning">&#9679; INTERNAL ativo</span><span class="user-name">Edson Portilho</span></div>
+      </div>
+      <div class="internal-banner">&#9888;&#65039; MODO INTERNAL &mdash; transa&ccedil;&otilde;es simuladas</div>
+      <div class="content-area">
+        <div class="detail-header">
+          <button class="back-btn" onclick="goBack()">&larr;</button>
+          <div class="detail-title">Configura&ccedil;&otilde;es</div>
+        </div>
+
+        <div class="settings-section">
+          <h2>Feature Flags</h2>
+          <div class="toggle-row">
+            <div class="toggle-label">Payment Provider<span class="mono">PAYMENT_PROVIDER: internal</span></div>
+            <label class="toggle"><input type="checkbox" checked onchange="this.checked=true; alert('Use a tela Providers para alterar o provider ativo')"><div class="toggle-track"></div><div class="toggle-thumb"></div></label>
+          </div>
+          <div class="toggle-row">
+            <div class="toggle-label">Auto-approve (Internal)<span class="mono">INTERNAL_AUTO_APPROVE</span></div>
+            <label class="toggle"><input type="checkbox" checked><div class="toggle-track"></div><div class="toggle-thumb"></div></label>
+          </div>
+          <div class="toggle-row">
+            <div class="toggle-label">Simulation Delay<span class="mono">INTERNAL_SIMULATION_DELAY</span></div>
+            <label class="toggle"><input type="checkbox" checked><div class="toggle-track"></div><div class="toggle-thumb"></div></label>
+          </div>
+          <div class="toggle-row">
+            <div class="toggle-label">Rate Limiting<span class="mono">RATE_LIMITING</span></div>
+            <label class="toggle"><input type="checkbox" checked><div class="toggle-track"></div><div class="toggle-thumb"></div></label>
+          </div>
+          <div class="toggle-row">
+            <div class="toggle-label">Webhook Retry<span class="mono">WEBHOOK_RETRY</span></div>
+            <label class="toggle"><input type="checkbox" checked><div class="toggle-track"></div><div class="toggle-thumb"></div></label>
+          </div>
+        </div>
+
+        <div class="settings-section">
+          <h2>Simula&ccedil;&atilde;o</h2>
+          <div style="padding:8px 0">
+            <label style="font-size:13px;color:var(--color-text-secondary);display:block;margin-bottom:10px">Delay de simula&ccedil;&atilde;o (segundos)</label>
+            <div class="range-group">
+              <span style="font-size:12px;color:var(--color-text-tertiary)">0s</span>
+              <input type="range" min="0" max="30" value="5" id="delay-range" oninput="document.getElementById('delay-val').textContent=this.value+'s'">
+              <span style="font-size:12px;color:var(--color-text-tertiary)">30s</span>
+              <span class="range-value" id="delay-val">5s</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="settings-section">
+          <h2>Rate Limiting</h2>
+          <div class="settings-input-row">
+            <div class="input-group">
+              <label>M&aacute;x. transa&ccedil;&otilde;es / minuto por app</label>
+              <input type="number" value="100">
+            </div>
+            <button class="btn btn-secondary btn-sm" onclick="alert('Rate limit atualizado!')">Salvar</button>
+          </div>
+        </div>
+
+        <div class="settings-section">
+          <h2>Usu&aacute;rios Admin</h2>
+          <div class="table-wrapper">
+            <table>
+              <thead><tr><th>Nome</th><th>Email</th><th>Role</th></tr></thead>
+              <tbody>
+                <tr><td>Edson Portilho</td><td>edson@ecp-pay.com</td><td><span class="badge badge-lime">super_admin</span></td></tr>
+                <tr><td>Ana Carolina</td><td>ana.carolina@ecp-pay.com</td><td><span class="badge badge-info">admin</span></td></tr>
+                <tr><td>Lucas Ferreira</td><td>lucas.ferreira@ecp-pay.com</td><td><span class="badge badge-neutral">viewer</span></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ========== MODAL: PROVIDER SWITCH ========== -->
+<div class="modal-overlay" id="provider-modal">
+  <div class="modal">
+    <h2>Alterar Provider</h2>
+    <p>Voc&ecirc; est&aacute; prestes a ativar o provider <strong>ASAAS</strong>. Isso significa que todas as novas transa&ccedil;&otilde;es ser&atilde;o processadas por um gateway real. Transa&ccedil;&otilde;es em andamento no provider atual ser&atilde;o finalizadas normalmente.</p>
+    <p style="color:var(--color-danger);font-size:13px;font-weight:600">&#9888; Esta a&ccedil;&atilde;o afeta transa&ccedil;&otilde;es reais e cobran&ccedil;as.</p>
+    <div class="modal-actions">
+      <button class="btn btn-secondary" onclick="hideModal()">Cancelar</button>
+      <button class="btn btn-danger" onclick="alert('Provider alterado para ASAAS!'); hideModal()">Confirmar Ativa&ccedil;&atilde;o</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ===== NAVIGATION SYSTEM ===== */
+let currentScreen = 'screen-login';
+const navHistory = [];
+
+function navigateTo(screenId) {
+  navHistory.push(currentScreen);
+  document.getElementById(currentScreen).classList.remove('active');
+  document.getElementById(screenId).classList.add('active');
+  currentScreen = screenId;
+  window.scrollTo(0, 0);
+  updateNav(screenId);
+}
+
+function goBack() {
+  if (navHistory.length > 0) {
+    document.getElementById(currentScreen).classList.remove('active');
+    currentScreen = navHistory.pop();
+    document.getElementById(currentScreen).classList.add('active');
+    window.scrollTo(0, 0);
+    updateNav(currentScreen);
+  }
+}
+
+function updateNav(id) {
+  // Map detail screens to their parent nav item
+  var navMap = {
+    'screen-tx-detail': 'screen-transactions'
+  };
+  var navTarget = navMap[id] || id;
+  document.querySelectorAll('.nav-item').forEach(function(el) {
+    el.classList.toggle('active', el.dataset.screen === navTarget);
+  });
+}
+
+function showTxDetail() {
+  navigateTo('screen-tx-detail');
+}
+
+/* ===== MODAL ===== */
+function showModal() {
+  document.getElementById('provider-modal').classList.add('visible');
+}
+function hideModal() {
+  document.getElementById('provider-modal').classList.remove('visible');
+}
+document.getElementById('provider-modal').addEventListener('click', function(e) {
+  if (e.target === this) hideModal();
+});
+
+/* ===== TABS ===== */
+function switchTab(tab, btn) {
+  document.querySelectorAll('.tab-btn').forEach(function(b) { b.classList.remove('active'); });
+  btn.classList.add('active');
+  document.querySelectorAll('.tab-content').forEach(function(c) { c.classList.remove('active'); });
+  document.getElementById('tab-' + tab).classList.add('active');
+}
+
+/* ===== WEBHOOK PAYLOAD TOGGLE ===== */
+function toggleWebhookPayload(id) {
+  var el = document.getElementById(id);
+  el.classList.toggle('visible');
+}
+
+/* ===== NEW APP FORM ===== */
+function toggleNewAppForm() {
+  var form = document.getElementById('new-app-form');
+  form.classList.toggle('visible');
+}
+</script>
+</body>
+</html>

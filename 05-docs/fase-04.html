@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Fase 04 — Operação | ECP Pay</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="sidebar-logo">
+      <span class="logo-icon">&#x2B21;</span>
+      ECP Pay docs
+    </div>
+    <ul class="sidebar-nav">
+      <li><a href="index.html"><span class="nav-icon">&#x25C9;</span> Visão Geral</a></li>
+      <li class="sidebar-section-title">Fases do Produto</li>
+      <li><a href="fase-01.html"><span class="nav-icon">01</span> Contexto Estratégico</a></li>
+      <li><a href="fase-02.html"><span class="nav-icon">02</span> Product Discovery</a></li>
+      <li><a href="fase-03.html"><span class="nav-icon">03</span> Product Delivery</a></li>
+      <li><a href="fase-04.html" class="active"><span class="nav-icon">04</span> Operação</a></li>
+    </ul>
+    <div class="sidebar-footer">
+      <a href="dashboard/index.html">&#x1F4CA; Dashboard App</a>
+    </div>
+  </aside>
+
+  <!-- Topbar -->
+  <header class="topbar">
+    <div class="topbar-title">Fase 04 &mdash; Operação de Produto</div>
+    <div class="topbar-meta">
+      <span><span class="status-dot green"></span> HITLs #11-#12 Aprovados</span>
+      <span>Operations</span>
+    </div>
+  </header>
+
+  <!-- Content -->
+  <main class="content">
+    <h1>Fase 04 &mdash; Operação de Produto</h1>
+    <p class="subtitle">Deploy strategy, SLOs, DORA metrics, experimentos A/B e monitoramento.</p>
+
+    <!-- Deploy Strategy -->
+    <h2>Estratégia de Deploy</h2>
+    <section class="section">
+      <div class="artifact-card highlighted">
+        <div class="artifact-label">Ambiente v1</div>
+        <div class="artifact-title">Desenvolvimento Local</div>
+        <div class="artifact-body">
+          <p>O ECP Pay v1 opera como serviço local no ecossistema de desenvolvimento. O deploy é feito via <code>npm run dev</code> com hot reload via tsx.</p>
+          <ul>
+            <li><strong>API Server:</strong> Fastify na porta <code>3335</code></li>
+            <li><strong>Admin Panel:</strong> Vite dev server na porta <code>5176</code></li>
+            <li><strong>Banco de dados:</strong> SQLite &mdash; <code>database-pay.sqlite</code> (auto-criado)</li>
+            <li><strong>Provider padrão:</strong> Internal (modo simulação)</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="two-col">
+        <div class="artifact-card">
+          <div class="artifact-label">Inicialização</div>
+          <div class="artifact-body">
+            <pre><code># Na raiz do projeto
+npm install
+npm run dev
+
+# Ou separadamente
+cd server && npm run dev  # API :3335
+cd web && npm run dev     # Admin :5176</code></pre>
+          </div>
+        </div>
+        <div class="artifact-card">
+          <div class="artifact-label">Seed de Dados</div>
+          <div class="artifact-body">
+            <p>O banco é populado automaticamente no startup com:</p>
+            <ul>
+              <li>3 apps registrados (ecp-bank, ecp-emps, ecp-food)</li>
+              <li>1 admin user (admin@ecpay.dev / Admin@123)</li>
+              <li>Feature flags padrão (PAYMENT_PROVIDER=internal)</li>
+              <li>Transações de exemplo para cada tipo</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SLOs -->
+    <h2>Service Level Objectives (SLOs)</h2>
+    <section class="section">
+      <div class="slo-grid">
+        <div class="slo-card">
+          <div class="slo-name">API Availability</div>
+          <div class="slo-target">99.9%</div>
+          <div class="slo-desc">Uptime medido via <code>GET /pay/health</code>. O endpoint retorna status do servidor e provider ativo.</div>
+        </div>
+        <div class="slo-card">
+          <div class="slo-name">Webhook 1st Attempt Delivery</div>
+          <div class="slo-target">&gt; 99%</div>
+          <div class="slo-desc">Taxa de callbacks entregues na primeira tentativa. Medido via <code>callback_status = delivered</code> no primeiro attempt.</div>
+        </div>
+        <div class="slo-card">
+          <div class="slo-name">API Latency (p95)</div>
+          <div class="slo-target">&lt; 300ms</div>
+          <div class="slo-desc">Latência no percentil 95 dos endpoints de pagamento, excluindo latência do gateway externo.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- DORA Metrics -->
+    <h2>DORA Metrics</h2>
+    <section class="section">
+      <div class="kr-grid">
+        <div class="artifact-card">
+          <div class="artifact-label">Deployment Frequency</div>
+          <div class="artifact-title" style="color: var(--lime);">On-demand</div>
+          <div class="artifact-body">Deploy local sob demanda. Cada mudança é refletida instantaneamente via hot reload (tsx watch mode).</div>
+        </div>
+        <div class="artifact-card">
+          <div class="artifact-label">Lead Time for Changes</div>
+          <div class="artifact-title" style="color: var(--lime);">Minutos</div>
+          <div class="artifact-body">Hot reload via tsx. Mudanças no código são refletidas em segundos no servidor de desenvolvimento.</div>
+        </div>
+        <div class="artifact-card">
+          <div class="artifact-label">Change Failure Rate</div>
+          <div class="artifact-title" style="color: var(--warning);">Rastreado via audit_logs</div>
+          <div class="artifact-body">Todas as mudanças de configuração e provider switch são registradas no audit log para rastreabilidade.</div>
+        </div>
+        <div class="artifact-card">
+          <div class="artifact-label">Mean Time to Restore</div>
+          <div class="artifact-title" style="color: var(--lime);">Segundos</div>
+          <div class="artifact-body">Restart do servidor resolve a maioria dos problemas. SQLite single-file não requer recovery de banco externo.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- A/B Tests -->
+    <h2>Experimentos A/B Planejados</h2>
+    <section class="section">
+      <div class="artifact-card">
+        <div class="artifact-label">EXP-001 <span class="badge pending">planejado</span></div>
+        <div class="artifact-title">Internal Mode Auto-Approve Delay</div>
+        <div class="artifact-body">
+          <p><strong>Hipótese:</strong> Reduzir o delay de auto-approve do Pix de 5s para 1s melhora a velocidade de testes dos desenvolvedores.</p>
+          <p><strong>Métrica:</strong> Tempo para completar um ciclo de teste de pagamento.</p>
+          <p><strong>Variantes:</strong> 5s delay (controle) vs. 1s delay (variante)</p>
+          <p><strong>KR vinculado:</strong> KR-04</p>
+        </div>
+      </div>
+
+      <div class="artifact-card">
+        <div class="artifact-label">EXP-002 <span class="badge pending">planejado</span></div>
+        <div class="artifact-title">Transaction Timeline Granularity</div>
+        <div class="artifact-body">
+          <p><strong>Hipótese:</strong> Adicionar elapsed time entre steps na timeline reduz o tempo de investigação para operadores.</p>
+          <p><strong>Métrica:</strong> Tempo entre abrir detalhe da transação e identificar root cause.</p>
+          <p><strong>Variantes:</strong> Timestamps only (controle) vs. Timestamps + elapsed (variante)</p>
+          <p><strong>KR vinculado:</strong> KR-05</p>
+        </div>
+      </div>
+
+      <div class="artifact-card">
+        <div class="artifact-label">EXP-003 <span class="badge pending">planejado</span></div>
+        <div class="artifact-title">Provider Switch Confirmation Flow</div>
+        <div class="artifact-body">
+          <p><strong>Hipótese:</strong> Adicionar preview de impacto (contagem de tx pendentes) reduz provider switches acidentais.</p>
+          <p><strong>Métrica:</strong> Switch-backs acidentais dentro de 5 minutos.</p>
+          <p><strong>Variantes:</strong> Confirmação simples (controle) vs. Impact preview (variante)</p>
+          <p><strong>KR vinculado:</strong> KR-03</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Monitoring -->
+    <h2>Endpoints de Monitoramento</h2>
+    <section class="section">
+      <div class="artifact-card">
+        <div class="endpoint"><span class="method get">GET</span><span class="path">/pay/health</span> &mdash; Health check: status do servidor, provider ativo, uptime</div>
+        <div class="endpoint"><span class="method get">GET</span><span class="path">/admin/dashboard</span> &mdash; KPIs: volume, transações, success rate, tokens, webhooks pendentes</div>
+        <div class="endpoint"><span class="method get">GET</span><span class="path">/admin/audit-logs</span> &mdash; Log de auditoria: todas as ações admin com filtros</div>
+        <div class="endpoint"><span class="method get">GET</span><span class="path">/admin/providers</span> &mdash; Status do provider ativo e configuração</div>
+        <div class="endpoint"><span class="method get">GET</span><span class="path">/admin/feature-flags</span> &mdash; Feature flags atuais e seus valores</div>
+      </div>
+
+      <div class="artifact-meta">
+        <span class="file-ref">operations-output.json</span>
+      </div>
+    </section>
+
+  </main>
+
+  <script src="assets/nav.js"></script>
+</body>
+</html>

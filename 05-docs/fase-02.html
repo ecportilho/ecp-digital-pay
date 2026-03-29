@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Fase 02 — Product Discovery | ECP Pay</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="sidebar-logo">
+      <span class="logo-icon">&#x2B21;</span>
+      ECP Pay docs
+    </div>
+    <ul class="sidebar-nav">
+      <li><a href="index.html"><span class="nav-icon">&#x25C9;</span> Visão Geral</a></li>
+      <li class="sidebar-section-title">Fases do Produto</li>
+      <li><a href="fase-01.html"><span class="nav-icon">01</span> Contexto Estratégico</a></li>
+      <li><a href="fase-02.html" class="active"><span class="nav-icon">02</span> Product Discovery</a></li>
+      <li><a href="fase-03.html"><span class="nav-icon">03</span> Product Delivery</a></li>
+      <li><a href="fase-04.html"><span class="nav-icon">04</span> Operação</a></li>
+    </ul>
+    <div class="sidebar-footer">
+      <a href="dashboard/index.html">&#x1F4CA; Dashboard App</a>
+    </div>
+  </aside>
+
+  <!-- Topbar -->
+  <header class="topbar">
+    <div class="topbar-title">Fase 02 &mdash; Product Discovery</div>
+    <div class="topbar-meta">
+      <span><span class="status-dot green"></span> HITLs #2-#6 Aprovados</span>
+      <span>PO + Designer + PM</span>
+    </div>
+  </header>
+
+  <!-- Content -->
+  <main class="content">
+    <h1>Fase 02 &mdash; Product Discovery</h1>
+    <p class="subtitle">Priorização de oportunidades, hipóteses de solução, protótipos, backlog estruturado e avaliação de riscos.</p>
+
+    <!-- Prioritized Opportunities -->
+    <h2>Oportunidades Priorizadas (WSJF)</h2>
+    <section class="section">
+      <p>9 oportunidades selecionadas para discovery, organizadas em 3 pilares estratégicos. Framework: WSJF (Weighted Shortest Job First).</p>
+
+      <h3>Pilar 1: Core Infrastructure</h3>
+      <p>API unificada, contrato estável e abstração de provider &mdash; o esqueleto sobre o qual tudo é construído.</p>
+      <table class="data-table">
+        <thead>
+          <tr><th>#</th><th>ID</th><th>Oportunidade</th><th>WSJF</th><th>Esforço</th><th>KRs</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>1</td><td>OPP-01</td><td>Eliminar reimplementação de integração com gateway em cada app</td><td>10.0</td><td><span class="badge neutral">L</span></td><td>KR-01, KR-02, KR-03</td></tr>
+          <tr><td>2</td><td>OPP-09</td><td>Estabilidade contratual da API para apps consumidores</td><td>14.0</td><td><span class="badge neutral">M</span></td><td>KR-01, KR-03</td></tr>
+          <tr><td>3</td><td>OPP-08</td><td>Liberdade para negociar com múltiplos gateways sem retrabalho</td><td>13.0</td><td><span class="badge neutral">M</span></td><td>KR-03</td></tr>
+        </tbody>
+      </table>
+
+      <h3>Pilar 2: Development Velocity</h3>
+      <p>Modo internal, staging determinístico e documentação unificada eliminam dependências externas.</p>
+      <table class="data-table">
+        <thead>
+          <tr><th>#</th><th>ID</th><th>Oportunidade</th><th>WSJF</th><th>Esforço</th><th>KRs</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>4</td><td>OPP-10</td><td>Testes de pagamento dependem de sandbox instável do Asaas</td><td>13.0</td><td><span class="badge neutral">M</span></td><td>KR-04, KR-01</td></tr>
+          <tr><td>7</td><td>OPP-12</td><td>Staging precisa ser determinístico e controlável</td><td>22.0</td><td><span class="badge neutral">S</span></td><td>KR-04</td></tr>
+          <tr><td>6</td><td>OPP-02</td><td>Devs precisam entender API de cada gateway em vez de contrato único</td><td>11.5</td><td><span class="badge neutral">M</span></td><td>KR-01, KR-03</td></tr>
+        </tbody>
+      </table>
+
+      <h3>Pilar 3: Production Reliability</h3>
+      <p>Idempotência, entrega garantida de webhooks e observabilidade completa de transações.</p>
+      <table class="data-table">
+        <thead>
+          <tr><th>#</th><th>ID</th><th>Oportunidade</th><th>WSJF</th><th>Esforço</th><th>KRs</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>5</td><td>OPP-14</td><td>Sem idempotência, retries causam cobranças duplicadas</td><td>13.5</td><td><span class="badge neutral">M</span></td><td>KR-05, KR-02</td></tr>
+          <tr><td>8</td><td>OPP-13</td><td>Callbacks precisam ser entregues mesmo em falha temporária</td><td>11.0</td><td><span class="badge neutral">M</span></td><td>KR-05, KR-02</td></tr>
+          <tr><td>9</td><td>OPP-06</td><td>Investigar falhas exige acessar logs em múltiplos sistemas</td><td>9.5</td><td><span class="badge neutral">M</span></td><td>KR-02, KR-05</td></tr>
+        </tbody>
+      </table>
+
+      <div class="artifact-meta">
+        <span class="file-ref">prioritized-opportunities.json</span>
+      </div>
+    </section>
+
+    <!-- Hypotheses -->
+    <h2>Hipóteses de Solução</h2>
+    <section class="section">
+      <p>7 hipóteses formuladas pelo Product Designer, cada uma com assumptions críticas validáveis por protótipo ou entrevista.</p>
+
+      <div class="artifact-card">
+        <div class="artifact-label">HYP-01 &mdash; Core Infrastructure</div>
+        <div class="artifact-title">API unificada com contrato estável no Dashboard e Transactions</div>
+        <div class="artifact-body">
+          <p>Uma camada de API unificada com contrato versionado dará aos operadores visibilidade em tempo real de todos os pagamentos do ecossistema, eliminando a necessidade de cada app integrar diretamente com o gateway.</p>
+          <p><strong>Assumptions:</strong> CA-01 (Dashboard sem overload), CA-02 (FilterBar cobre 95% dos workflows), CA-03 (contrato único para Pix/Card/Boleto), CA-04 (atribuição source_app suficiente).</p>
+        </div>
+      </div>
+
+      <div class="artifact-card">
+        <div class="artifact-label">HYP-02 &mdash; Core Infrastructure</div>
+        <div class="artifact-title">Provider Pattern com ProviderToggle no painel admin</div>
+        <div class="artifact-body">
+          <p>Uma camada de abstração de provider, surfaced por uma página Providers dedicada com ProviderToggle, permitirá ao super admin alternar entre Internal e External sem impactar apps downstream.</p>
+          <p><strong>Assumptions:</strong> CA-05 (toggle two-card previne acidentes), CA-06 (modal de confirmação), CA-07 (status em 3 locais persistentes), CA-08 (histórico de swaps).</p>
+        </div>
+      </div>
+
+      <div class="artifact-card">
+        <div class="artifact-label">HYP-03 &mdash; Development Velocity</div>
+        <div class="artifact-title">Internal Mode com controles de simulação no Settings</div>
+        <div class="artifact-body">
+          <p>Modo Internal com controles de simulação na página Settings e ações contextuais na página Transactions eliminará dependência do sandbox Asaas, habilitando testes determinísticos.</p>
+          <p><strong>Assumptions:</strong> CA-09 (admin panel vs env vars), CA-10 (banner amarelo suficiente), CA-11 (botões de simulação contextual), CA-12 (feature flags via Toggle).</p>
+        </div>
+      </div>
+
+      <div class="artifact-card">
+        <div class="artifact-label">HYP-04 &mdash; Development Velocity</div>
+        <div class="artifact-title">Documentação unificada via Apps page e exemplos interativos</div>
+        <div class="artifact-body">
+          <p>Documentação acessível do painel admin (Apps page) com exemplos interativos usando modo Internal reduzirá onboarding de semanas para horas.</p>
+          <p><strong>Assumptions:</strong> CA-13 (Apps page como entry point), CA-14 (payloads reais como material de aprendizado), CA-15 (modal de registro self-service).</p>
+        </div>
+      </div>
+
+      <div class="artifact-card">
+        <div class="artifact-label">HYP-05 &mdash; Production Reliability</div>
+        <div class="artifact-title">Idempotência visível no painel admin</div>
+        <div class="artifact-body">
+          <p>Mostrar idempotency_key por transação, flagging de requests deduplicados e duplicatas na timeline dará confiança aos operadores de que cobranças duplicadas não ocorrem.</p>
+          <p><strong>Assumptions:</strong> CA-16 (idempotency_key visível), CA-17 (evento dedup na timeline), CA-18 (sem dashboard dedicado de duplicatas).</p>
+        </div>
+      </div>
+
+      <div class="artifact-card">
+        <div class="artifact-label">HYP-06 &mdash; Production Reliability</div>
+        <div class="artifact-title">Webhooks page com tabs Recebidos/Enviados e retry manual</div>
+        <div class="artifact-body">
+          <p>Página dedicada de Webhooks com tabs received/sent, tracking de delivery status e retry one-click dará controle total sobre entrega de eventos.</p>
+          <p><strong>Assumptions:</strong> CA-19 (two-tab mental model), CA-20 (attempt count com timing), CA-21 (botão retry suficiente), CA-22 (CodeBlock para debug).</p>
+        </div>
+      </div>
+
+      <div class="artifact-card">
+        <div class="artifact-label">HYP-07 &mdash; Production Reliability</div>
+        <div class="artifact-title">TransactionTimeline com ciclo de vida completo</div>
+        <div class="artifact-body">
+          <p>Componente TransactionTimeline mostrando o ciclo completo (request &rarr; gateway &rarr; webhook &rarr; callback) com timestamps correlacionados reduzirá tempo de investigação de horas para minutos.</p>
+          <p><strong>Assumptions:</strong> CA-23 (timeline vertical clara), CA-24 (elapsed time entre eventos), CA-25 (cores semânticas), CA-26 (nós expansíveis com payload).</p>
+        </div>
+      </div>
+
+      <div class="artifact-meta">
+        <span class="file-ref">ideation-output.json</span>
+      </div>
+    </section>
+
+    <!-- Prototypes -->
+    <h2>Protótipos</h2>
+    <section class="section">
+      <div class="two-col">
+        <a href="../02-product-discovery/prototype/low-fi.html" class="quick-link">
+          <span class="ql-icon">&#x1F4DD;</span> Protótipo Low-fi (Wireframes)
+        </a>
+        <a href="../02-product-discovery/prototype/high-fi.html" class="quick-link">
+          <span class="ql-icon">&#x1F3A8;</span> Protótipo High-fi (Visual)
+        </a>
+      </div>
+      <p style="margin-top: 12px;">8 telas prototipadas: Dashboard, Transactions, Transaction Detail, Providers, Webhooks, Apps, Settings, Audit Log.</p>
+    </section>
+
+    <!-- Backlog -->
+    <h2>Backlog Estruturado</h2>
+    <section class="section">
+      <p>3 épicos, 13 features e 29 user stories com critérios de aceite em BDD/Gherkin.</p>
+
+      <!-- EP-01 -->
+      <div class="epic-block">
+        <div class="epic-header">
+          <div class="epic-id">EP-01</div>
+          <div class="epic-title">Infraestrutura Central de Pagamentos</div>
+        </div>
+        <div class="epic-description">API unificada, Provider Pattern, autenticação de apps, cofre de tokens e split de pagamento. Serve KR-01, KR-02 e KR-03.</div>
+        <div class="feature-list">
+          <div class="feature-item">
+            <div class="feature-id">FT-01</div>
+            <div class="feature-title">API Unificada de Pagamentos (Pix, Cartão, Boleto)</div>
+            <div class="feature-description">POST /pay/pix, POST /pay/card, POST /pay/boleto, GET /pay/transactions/:id, POST /pay/transactions/:id/refund</div>
+            <div class="story-list">
+              <div class="story-item"><span class="story-id">US-01</span> Criar cobrança Pix via API (QR Code + copia-e-cola)</div>
+              <div class="story-item"><span class="story-id">US-02</span> Cobrar cartão de crédito via API (novo ou tokenizado)</div>
+              <div class="story-item"><span class="story-id">US-03</span> Emitir boleto registrado via API com QR Code Pix embutido</div>
+              <div class="story-item"><span class="story-id">US-04</span> Consultar status de qualquer transação</div>
+              <div class="story-item"><span class="story-id">US-05</span> Estornar transação total ou parcialmente</div>
+            </div>
+          </div>
+          <div class="feature-item">
+            <div class="feature-id">FT-02</div>
+            <div class="feature-title">Provider Pattern com Abstração de Gateway</div>
+            <div class="feature-description">PaymentProvider interface, AsaasAdapter, InternalAdapter, ProviderFactory com feature flag</div>
+            <div class="story-list">
+              <div class="story-item"><span class="story-id">US-06</span> Alternar entre provider Internal e Asaas via painel admin</div>
+              <div class="story-item"><span class="story-id">US-07</span> Contrato da API idêntico independente do provider ativo</div>
+            </div>
+          </div>
+          <div class="feature-item">
+            <div class="feature-id">FT-03</div>
+            <div class="feature-title">Autenticação e Registro de Apps Consumidores</div>
+            <div class="feature-description">X-API-Key, X-Source-App, rate limiting 100 tx/min por app</div>
+            <div class="story-list">
+              <div class="story-item"><span class="story-id">US-08</span> Registrar novo app via painel admin</div>
+              <div class="story-item"><span class="story-id">US-09</span> Autenticação via API key com rate limiting</div>
+            </div>
+          </div>
+          <div class="feature-item">
+            <div class="feature-id">FT-04</div>
+            <div class="feature-title">Cofre de Tokens (Card Vault) Cross-App</div>
+            <div class="feature-description">Tokenização segura, nunca persiste dados sensíveis, reutilizável entre apps</div>
+            <div class="story-list">
+              <div class="story-item"><span class="story-id">US-10</span> Tokenizar cartão durante cobrança para reutilização futura</div>
+            </div>
+          </div>
+          <div class="feature-item">
+            <div class="feature-id">FT-05</div>
+            <div class="feature-title">Split de Pagamento por Transação</div>
+            <div class="feature-description">Regras de split por transação, validação soma = total, distribuição multi-parte</div>
+            <div class="story-list">
+              <div class="story-item"><span class="story-id">US-11</span> Definir regras de split ao criar transação</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- EP-02 -->
+      <div class="epic-block">
+        <div class="epic-header">
+          <div class="epic-id">EP-02</div>
+          <div class="epic-title">Velocidade de Desenvolvimento do Ecossistema</div>
+        </div>
+        <div class="epic-description">Modo Internal, staging determinístico e onboarding de desenvolvedores. Serve KR-04 e KR-01.</div>
+        <div class="feature-list">
+          <div class="feature-item">
+            <div class="feature-id">FT-06</div>
+            <div class="feature-title">Modo Internal &mdash; Simulação Completa de Pagamentos</div>
+            <div class="feature-description">InternalAdapter simula Pix (auto-approve), Card (regras determinísticas), Boleto (mock)</div>
+            <div class="story-list">
+              <div class="story-item"><span class="story-id">US-12</span> Pix aprovado automaticamente no modo internal</div>
+              <div class="story-item"><span class="story-id">US-13</span> Cartão com regras determinísticas no modo internal</div>
+              <div class="story-item"><span class="story-id">US-14</span> Boleto com código mock no modo internal</div>
+            </div>
+          </div>
+          <div class="feature-item">
+            <div class="feature-id">FT-07</div>
+            <div class="feature-title">Ambiente de Staging Determinístico</div>
+            <div class="feature-description">Feature flags editáveis em runtime, banner de modo internal, configuração via admin</div>
+            <div class="story-list">
+              <div class="story-item"><span class="story-id">US-15</span> Configurar parâmetros de simulação via painel admin</div>
+              <div class="story-item"><span class="story-id">US-16</span> Banner visual claro quando modo internal está ativo</div>
+            </div>
+          </div>
+          <div class="feature-item">
+            <div class="feature-id">FT-08</div>
+            <div class="feature-title">Gestão de Apps e Onboarding de Desenvolvedores</div>
+            <div class="feature-description">Apps page, registro self-service, payloads de request/response como exemplos</div>
+            <div class="story-list">
+              <div class="story-item"><span class="story-id">US-17</span> Visualizar apps registrados com métricas no painel admin</div>
+              <div class="story-item"><span class="story-id">US-18</span> Ver payloads de request/response no detalhe de transação</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- EP-03 -->
+      <div class="epic-block">
+        <div class="epic-header">
+          <div class="epic-id">EP-03</div>
+          <div class="epic-title">Confiabilidade e Operação em Produção</div>
+        </div>
+        <div class="epic-description">Idempotência, webhook retry, observabilidade, auditoria e autenticação RBAC. Serve KR-05 e KR-02.</div>
+        <div class="feature-list">
+          <div class="feature-item">
+            <div class="feature-id">FT-09</div>
+            <div class="feature-title">Idempotência e Deduplicação de Transações</div>
+            <div class="feature-description">X-Idempotency-Key obrigatório, UNIQUE constraint, dedup no audit log</div>
+            <div class="story-list">
+              <div class="story-item"><span class="story-id">US-19</span> Retries com mesma idempotency_key retornam resultado original</div>
+              <div class="story-item"><span class="story-id">US-20</span> Idempotency_key e eventos de dedup visíveis no detalhe</div>
+            </div>
+          </div>
+          <div class="feature-item">
+            <div class="feature-id">FT-10</div>
+            <div class="feature-title">Webhook Delivery com Retry e Backoff Exponencial</div>
+            <div class="feature-description">Callbacks automáticos, retry 3x (30s, 2min, 10min), retry manual via admin</div>
+            <div class="story-list">
+              <div class="story-item"><span class="story-id">US-21</span> Callbacks automáticos quando status de transação muda</div>
+              <div class="story-item"><span class="story-id">US-22</span> Callbacks falhos reenviados com backoff exponencial</div>
+              <div class="story-item"><span class="story-id">US-23</span> Gerenciar webhooks com opção de retry manual no painel</div>
+            </div>
+          </div>
+          <div class="feature-item">
+            <div class="feature-id">FT-11</div>
+            <div class="feature-title">Observabilidade de Transações &mdash; Timeline e Dashboard</div>
+            <div class="feature-description">TransactionTimeline, 6 KPI cards, gráficos de volume/tipo/success rate</div>
+            <div class="story-list">
+              <div class="story-item"><span class="story-id">US-24</span> Timeline completa de transação no detalhe</div>
+              <div class="story-item"><span class="story-id">US-25</span> Dashboard com KPIs e gráficos do ecossistema</div>
+              <div class="story-item"><span class="story-id">US-26</span> Filtrar e buscar transações com múltiplos critérios</div>
+            </div>
+          </div>
+          <div class="feature-item">
+            <div class="feature-id">FT-12</div>
+            <div class="feature-title">Auditoria e Logging Estruturado</div>
+            <div class="feature-description">Audit log para todas as ações admin, soft delete policy, logging estruturado</div>
+            <div class="story-list">
+              <div class="story-item"><span class="story-id">US-27</span> Toda ação administrativa registrada em log de auditoria</div>
+              <div class="story-item"><span class="story-id">US-28</span> Ações operacionais (reprocessar, estornar, cancelar) no detalhe</div>
+            </div>
+          </div>
+          <div class="feature-item">
+            <div class="feature-id">FT-13</div>
+            <div class="feature-title">Autenticação e RBAC do Painel Admin</div>
+            <div class="feature-description">Login JWT, 3 roles (admin, operator, viewer), RBAC em todas as rotas</div>
+            <div class="story-list">
+              <div class="story-item"><span class="story-id">US-29</span> Login com email/senha e controle de acesso por role</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="artifact-meta">
+        <span class="file-ref">backlog-and-risks.json</span>
+      </div>
+    </section>
+
+    <!-- 4 Risks -->
+    <h2>Avaliação dos 4 Riscos (Cagan)</h2>
+    <section class="section">
+      <div class="risk-grid">
+        <div class="risk-card">
+          <div class="risk-type" style="color: var(--success);">Valor para o Cliente</div>
+          <div class="risk-verdict">Aprovado <span class="badge approved">approved</span></div>
+          <div class="risk-body">
+            OST validado com 15 oportunidades mapeadas a 5 KRs. 7 hipóteses de solução com 26 assumptions críticas. 3 personas com necessidades distintas. 9 oportunidades priorizadas via WSJF cobrindo jornada completa de integração a operação.
+          </div>
+        </div>
+        <div class="risk-card">
+          <div class="risk-type" style="color: var(--lime);">Valor de Negócio</div>
+          <div class="risk-verdict">Aprovado <span class="badge approved">approved</span></div>
+          <div class="risk-body">
+            Todos os 5 KRs cobertos com full coverage. EP-01 + EP-02 servem KR-01 a KR-04. EP-03 serve KR-05 e KR-02. Risco residual: SQLite pode ser gargalo se volume exceder expectativas (AS-03).
+          </div>
+        </div>
+        <div class="risk-card">
+          <div class="risk-type" style="color: var(--warning);">Usabilidade</div>
+          <div class="risk-verdict">Aprovado <span class="badge approved">approved</span></div>
+          <div class="risk-body">
+            8 telas, 7 fluxos e 8 interações validadas. Design segue padrão density-first (inspiração Stripe/Datadog). Princípios de Norman aplicados: visibilidade de status, feedback, constraints. Admin panel é ferramenta operacional, não consumer-facing.
+          </div>
+        </div>
+        <div class="risk-card">
+          <div class="risk-type" style="color: var(--info);">Viabilidade Técnica</div>
+          <div class="risk-verdict">Aprovado <span class="badge approved">approved</span></div>
+          <div class="risk-body">
+            Stack idêntica ao ecossistema existente (TypeScript + Fastify + SQLite + React + Vite). Provider Pattern é padrão bem documentado. 29 endpoints, 8 rotas SPA, 13 features &mdash; escopo viável. RBAC com JWT já provado no ecp-digital-bank.
+          </div>
+        </div>
+      </div>
+
+      <div class="artifact-meta">
+        <span class="file-ref">backlog-and-risks.json</span>
+      </div>
+    </section>
+
+  </main>
+
+  <script src="assets/nav.js"></script>
+</body>
+</html>

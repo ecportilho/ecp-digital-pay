@@ -1,0 +1,256 @@
+{
+  "agent": "product-designer",
+  "phase": "02-product-discovery",
+  "step": "ideation",
+  "methodology": "Torres (Opportunity Solution Tree) + IDEO (How Might We) + Norman (visibility of system status)",
+  "deliverables": {
+    "solution_hypotheses": [
+      {
+        "id": "HYP-01",
+        "pillar": "Core Infrastructure",
+        "opportunities_addressed": ["OPP-01", "OPP-09"],
+        "hypothesis": "We believe that a unified API layer with a stable, versioned contract displayed in the admin Dashboard and Transactions pages will give operators real-time visibility into all ecosystem payments, eliminating the need for each app to build its own gateway integration",
+        "critical_assumptions": [
+          {
+            "id": "CA-01",
+            "assumption": "Operators can effectively monitor all ecosystem transactions from a single Dashboard page with 6 KPI cards, 3 charts, and a live transaction mini-table without information overload",
+            "validation_method": "prototype"
+          },
+          {
+            "id": "CA-02",
+            "assumption": "The FilterBar with multi-select for app, type, status, provider, date range, and search covers 95% of operator investigation workflows without requiring custom queries",
+            "validation_method": "prototype"
+          },
+          {
+            "id": "CA-03",
+            "assumption": "A single contract (unified headers: Authorization, X-Source-App, X-Idempotency-Key) is expressive enough to cover Pix, Card, and Boleto payment types without gateway-specific leakage",
+            "validation_method": "data analysis"
+          },
+          {
+            "id": "CA-04",
+            "assumption": "Displaying source_app attribution per transaction (in the table and KPI breakdown) is sufficient for the owner to understand ecosystem-wide payment distribution",
+            "validation_method": "prototype"
+          }
+        ],
+        "prototype_scope": "Dashboard page with 6 KPI cards (volume, transactions, success rate, revenue/hour, active tokens, pending webhooks), volume line chart with per-app breakdown, donut chart by type, success rate bar chart. Transactions list page with full FilterBar and sortable table. Click-through to transaction detail. Validate that an operator can answer: 'What is the current state of payments across the ecosystem?' in under 10 seconds."
+      },
+      {
+        "id": "HYP-02",
+        "pillar": "Core Infrastructure",
+        "opportunities_addressed": ["OPP-08", "OPP-09"],
+        "hypothesis": "We believe that a Provider abstraction layer, surfaced through a dedicated Providers admin page with a prominent ProviderToggle component, will allow the super admin to switch between Internal and External (Asaas) modes without any downstream app changes, and give operators clear visibility into which provider is active at all times",
+        "critical_assumptions": [
+          {
+            "id": "CA-05",
+            "assumption": "The ProviderToggle two-card design (INTERNAL vs EXTERNAL with active indicator, description, and activation button) communicates the gravity of the switch clearly enough that accidental toggles are prevented",
+            "validation_method": "prototype"
+          },
+          {
+            "id": "CA-06",
+            "assumption": "A confirmation modal with impact message ('Transactions in progress will complete in the current mode') is sufficient friction to prevent destructive provider switches in production",
+            "validation_method": "prototype"
+          },
+          {
+            "id": "CA-07",
+            "assumption": "Showing provider status in three persistent locations (sidebar footer, header indicator, Providers page) ensures operators never lose awareness of the current mode, even during deep drill-down flows",
+            "validation_method": "prototype"
+          },
+          {
+            "id": "CA-08",
+            "assumption": "The provider swap history list (who, when, from-to) from the audit log provides sufficient accountability for compliance and debugging",
+            "validation_method": "user interview"
+          }
+        ],
+        "prototype_scope": "Providers page with ProviderToggle component (two-card layout with INTERNAL active state, lime border, badge). Confirmation modal flow for switching. Provider status cards showing configuration and recent transactions per provider. Sidebar and header persistent indicators showing current provider. Validate that the super admin can: (1) immediately see which provider is active, (2) understand the consequences before switching, (3) review switch history."
+      },
+      {
+        "id": "HYP-03",
+        "pillar": "Development Velocity",
+        "opportunities_addressed": ["OPP-10", "OPP-12"],
+        "hypothesis": "We believe that an Internal Mode with simulation controls in the Settings page and special controls surfaced contextually in the Transactions page will eliminate developer dependency on Asaas sandbox, enabling deterministic testing and staging environments",
+        "critical_assumptions": [
+          {
+            "id": "CA-09",
+            "assumption": "Developers and QA operators will use the admin panel (not just env vars) to control Internal Mode behavior: auto-approve delay slider (0-30s), simulation triggers for Pix/Boleto/Card",
+            "validation_method": "user interview"
+          },
+          {
+            "id": "CA-10",
+            "assumption": "The yellow banner 'MODO INTERNAL - transacoes simuladas' at the top of every page is sufficient to prevent confusion between simulated and real transactions",
+            "validation_method": "prototype"
+          },
+          {
+            "id": "CA-11",
+            "assumption": "Contextual simulation buttons ('Simular pagamento', 'Simular rejeicao') directly on pending transaction rows reduce the workflow from 'find transaction -> open detail -> trigger action' to a single click, which is critical for fast testing cycles",
+            "validation_method": "prototype"
+          },
+          {
+            "id": "CA-12",
+            "assumption": "Feature flags managed via Toggle components in Settings (PAYMENT_PROVIDER, INTERNAL_AUTO_APPROVE, etc.) give non-developer operators enough control without requiring env var changes or service restarts",
+            "validation_method": "prototype"
+          }
+        ],
+        "prototype_scope": "Settings page with feature flags section (Toggle components for each flag), simulation controls (delay slider 0-30s), and rate limit configuration. Internal Mode banner (yellow stripe) on all pages. Transaction list with contextual 'Simulate payment' and 'Simulate rejection' buttons visible only in Internal mode. Transaction detail page showing simulated vs real transaction distinction. Validate that a developer can: (1) configure Internal Mode entirely from the admin panel, (2) simulate a complete Pix payment flow (create -> auto-approve -> webhook -> callback) without leaving the panel."
+      },
+      {
+        "id": "HYP-04",
+        "pillar": "Development Velocity",
+        "opportunities_addressed": ["OPP-02"],
+        "hypothesis": "We believe that unified API documentation accessible from the admin panel (via Apps page and contextual links) combined with interactive examples using Internal Mode will reduce developer onboarding time from weeks to hours",
+        "critical_assumptions": [
+          {
+            "id": "CA-13",
+            "assumption": "The Apps page (registered apps with API keys, callback URLs, and volume) serves as both an app management tool and a self-service developer onboarding entry point",
+            "validation_method": "prototype"
+          },
+          {
+            "id": "CA-14",
+            "assumption": "Showing real request/response payloads in CodeBlock components (with syntax-highlighted JSON) within transaction details provides better learning material than standalone API docs alone",
+            "validation_method": "user interview"
+          },
+          {
+            "id": "CA-15",
+            "assumption": "The modal flow for registering a new app (name + callback URL -> auto-generated API key) is simple enough that a developer can self-serve without admin intervention",
+            "validation_method": "prototype"
+          }
+        ],
+        "prototype_scope": "Apps page with registered app cards (name, masked API key, callback URL, status, volume), 'Register new app' modal with auto-generated API key. Transaction detail page with CodeBlock showing request/response JSON payloads. Validate that a new developer can: (1) register their app, (2) get an API key, (3) understand the payload format by examining existing transactions in the panel."
+      },
+      {
+        "id": "HYP-05",
+        "pillar": "Production Reliability",
+        "opportunities_addressed": ["OPP-14"],
+        "hypothesis": "We believe that making idempotency visible in the admin panel (showing idempotency_key per transaction, flagging deduplicated requests, and surfacing duplicate attempts in the timeline) will give operators confidence that no duplicate charges occur, even during retry scenarios",
+        "critical_assumptions": [
+          {
+            "id": "CA-16",
+            "assumption": "Displaying the idempotency_key (in mono font) alongside the transaction ID in the detail view helps operators correlate retry attempts from consuming apps",
+            "validation_method": "prototype"
+          },
+          {
+            "id": "CA-17",
+            "assumption": "A 'deduplicated' event in the TransactionTimeline (showing when a duplicate request was received and returned the existing result) is the right level of visibility - enough for debugging without cluttering the timeline",
+            "validation_method": "prototype"
+          },
+          {
+            "id": "CA-18",
+            "assumption": "Operators do not need a dedicated 'duplicate requests' dashboard - seeing dedup events inline in the transaction timeline and audit log is sufficient for production monitoring",
+            "validation_method": "user interview"
+          }
+        ],
+        "prototype_scope": "Transaction detail page with idempotency_key displayed in mono font header. TransactionTimeline showing dedup events ('Duplicate request received - returned existing result' with timestamp and source). Audit log entries for dedup occurrences. Validate that an operator can: (1) see the idempotency_key for any transaction, (2) identify when a dedup occurred, (3) understand that the system correctly prevented a duplicate charge."
+      },
+      {
+        "id": "HYP-06",
+        "pillar": "Production Reliability",
+        "opportunities_addressed": ["OPP-13"],
+        "hypothesis": "We believe that a dedicated Webhooks page with received/sent tabs, delivery status tracking, and one-click retry will give operators full control over event delivery, ensuring apps are always notified even after transient failures",
+        "critical_assumptions": [
+          {
+            "id": "CA-19",
+            "assumption": "The two-tab design (Received from Asaas / Sent to apps) with separate tables is the right mental model for operators - they think in terms of 'what came in' vs 'what went out'",
+            "validation_method": "prototype"
+          },
+          {
+            "id": "CA-20",
+            "assumption": "Showing delivery attempts count (1/3, 2/3, 3/3) with backoff timing (30s, 2min, 10min) in the webhook row gives operators enough context to know if a retry is in progress or exhausted",
+            "validation_method": "prototype"
+          },
+          {
+            "id": "CA-21",
+            "assumption": "A single 'Retry' button on failed callbacks is sufficient - operators do not need to configure retry parameters (the system's 30s/2min/10min backoff from RN-10 is always applied)",
+            "validation_method": "user interview"
+          },
+          {
+            "id": "CA-22",
+            "assumption": "CodeBlock with full webhook payload in the detail/drill-down view provides sufficient debugging information without requiring operators to check external logs",
+            "validation_method": "prototype"
+          }
+        ],
+        "prototype_scope": "Webhooks page with segmented control (Received/Sent tabs). Received table: event_id, type, transaction link, processed status, timestamp. Sent table: transaction, destination app, delivery status badge (delivered/failed/retrying), attempt count (e.g., '2/3 - next in 8min'), timestamp. Retry button on failed rows. Drill-down with CodeBlock showing full payload. Validate that an operator can: (1) identify a failed callback in under 5 seconds, (2) understand the retry state, (3) manually trigger a retry, (4) inspect the full payload."
+      },
+      {
+        "id": "HYP-07",
+        "pillar": "Production Reliability",
+        "opportunities_addressed": ["OPP-06"],
+        "hypothesis": "We believe that a TransactionTimeline component showing the full lifecycle of a transaction (request -> gateway -> webhook -> callback) with correlated timestamps and status transitions will reduce incident investigation time from hours to minutes",
+        "critical_assumptions": [
+          {
+            "id": "CA-23",
+            "assumption": "A vertical timeline with chronological events (created, processing, gateway_response, webhook_received, callback_sent, completed/failed) provides a clear enough narrative for an operator to understand what happened to a transaction without reading raw logs",
+            "validation_method": "prototype"
+          },
+          {
+            "id": "CA-24",
+            "assumption": "Showing elapsed time between timeline events (e.g., '2.3s between gateway response and webhook') highlights bottlenecks and anomalies that operators need for debugging",
+            "validation_method": "prototype"
+          },
+          {
+            "id": "CA-25",
+            "assumption": "Color-coding timeline events using semantic colors (info for processing, success for completed steps, danger for failures, warning for pending) provides at-a-glance status without requiring operators to read every event detail",
+            "validation_method": "prototype"
+          },
+          {
+            "id": "CA-26",
+            "assumption": "Expandable timeline nodes (click to see request/response payload in CodeBlock) balances information density with readability - operators see the summary by default and drill into payloads only when needed",
+            "validation_method": "prototype"
+          }
+        ],
+        "prototype_scope": "Transaction detail page with TransactionTimeline component: vertical timeline showing 6-8 events (created, sent_to_provider, provider_response, webhook_received, webhook_processed, callback_sent, callback_delivered, status_final). Each node: timestamp, event name, elapsed time from previous, semantic color dot. Expandable nodes with CodeBlock for payloads. Failed transactions: red nodes with error details. Validate that an operator can: (1) trace a transaction from creation to completion in one view, (2) identify where a failure occurred, (3) see the exact payload at each step."
+      }
+    ],
+    "prototype_plan": {
+      "screens": [
+        "Dashboard — KPI cards, volume chart, type distribution donut, success rate chart, provider status card, live transactions mini-table",
+        "Transactions List — FilterBar (app, type, status, provider, date range, search), sortable/paginated table, Internal Mode simulation buttons",
+        "Transaction Detail — Header with ID + status + value, TransactionTimeline, data grid, CodeBlock payloads, split table, webhook payloads, action buttons",
+        "Providers — ProviderToggle two-card layout, confirmation modal, provider status cards, credentials form, switch history",
+        "Webhooks — Received/Sent tabs, delivery status table with attempt tracking, Retry button, CodeBlock payload drill-down",
+        "Settings — Feature flag toggles, simulation delay slider, rate limit config, admin user management",
+        "Apps — Registered app cards, register modal with auto-generated API key",
+        "Login — Centered layout, email/password form (entry point)"
+      ],
+      "flows": [
+        "F-01: Dashboard overview -> click transaction -> Transaction Detail with Timeline (operator investigation flow)",
+        "F-02: Transactions list -> apply filters -> drill-down to detail -> trigger refund or resend callback (operator action flow)",
+        "F-03: Providers page -> click 'Ativar' on inactive provider -> confirmation modal -> provider switches -> sidebar/header update (provider switch flow)",
+        "F-04: Settings -> toggle Internal Mode -> yellow banner appears -> Transactions page shows simulation buttons -> simulate Pix payment -> timeline updates (developer testing flow)",
+        "F-05: Webhooks -> filter failed callbacks -> inspect payload -> click Retry -> status updates to 'retrying' (webhook recovery flow)",
+        "F-06: Apps -> Register new app -> modal with name/callback -> API key generated -> app appears in list (developer onboarding flow)",
+        "F-07: Transaction Detail -> inspect TransactionTimeline -> expand nodes -> view request/response payloads (incident investigation flow)"
+      ],
+      "key_interactions": [
+        "KI-01: ProviderToggle switch with confirmation modal — must validate that operators understand consequences before switching",
+        "KI-02: TransactionTimeline expand/collapse nodes — must validate that drill-down into payloads feels natural, not buried",
+        "KI-03: FilterBar multi-select + date range + search — must validate that combining filters produces expected results intuitively",
+        "KI-04: Internal Mode simulation buttons (Simulate payment, Simulate rejection) — must validate that contextual actions on pending transactions are discoverable",
+        "KI-05: Webhook Retry button with status feedback — must validate that operators get clear feedback on retry outcome",
+        "KI-06: Internal Mode yellow banner — must validate that mode awareness is persistent and unambiguous across all pages",
+        "KI-07: KPI cards with trend indicators (arrow up/down + percentage) — must validate that operators can assess system health at a glance",
+        "KI-08: CodeBlock with copy button for JSON payloads — must validate that developers can quickly extract and use payload data"
+      ]
+    },
+    "design_principles_applied": {
+      "norman_visibility": "System status is visible at all times: provider indicator in sidebar and header, Internal Mode banner, transaction status badges with semantic colors, webhook delivery status with attempt counts",
+      "norman_feedback": "Every action has immediate feedback: ProviderToggle confirmation modal, simulation buttons update timeline in real-time, Retry button changes status to 'retrying', filter application updates table instantly",
+      "norman_constraints": "Destructive actions require confirmation: provider switch modal, refund confirmation, API key regeneration. Internal Mode simulation buttons only appear when PAYMENT_PROVIDER=internal",
+      "torres_assumptions": "Each hypothesis maps to testable critical assumptions. Validation methods include prototype testing (visual/interaction validation), data analysis (API contract coverage), and user interviews (workflow validation with operators)",
+      "density_first": "Following Stripe/Datadog/Grafana pattern: data tables as primary navigation, KPI cards for at-a-glance metrics, CodeBlock for technical details, FilterBar for powerful querying. No decorative elements, no empty space waste"
+    },
+    "hypothesis_to_screen_mapping": {
+      "HYP-01": ["Dashboard", "Transactions List"],
+      "HYP-02": ["Providers", "Sidebar", "Header"],
+      "HYP-03": ["Settings", "Transactions List", "Transaction Detail"],
+      "HYP-04": ["Apps", "Transaction Detail"],
+      "HYP-05": ["Transaction Detail"],
+      "HYP-06": ["Webhooks"],
+      "HYP-07": ["Transaction Detail"]
+    },
+    "critical_screen_priority": {
+      "tier_1_must_prototype": ["Transaction Detail (appears in 4/7 hypotheses — the convergence point)", "Dashboard (entry point for all operators)", "Providers (highest-risk interaction: provider switch)"],
+      "tier_2_should_prototype": ["Transactions List (primary workhorse page)", "Webhooks (production reliability validation)", "Settings (Internal Mode controls)"],
+      "tier_3_nice_to_have": ["Apps (simpler flow, lower risk)", "Login (standard pattern, low uncertainty)"]
+    }
+  },
+  "next_hitl": 3
+}

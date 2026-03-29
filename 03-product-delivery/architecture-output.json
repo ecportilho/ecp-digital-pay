@@ -1,0 +1,220 @@
+{
+  "agent": "software-architect",
+  "phase": "03-product-delivery",
+  "step": "repository-scaffolding-and-architecture",
+  "deliverables": {
+    "domain_model": {
+      "bounded_contexts": [
+        {
+          "name": "Payment Processing",
+          "description": "Core domain: processes Pix, Card, and Boleto charges through the provider abstraction layer",
+          "aggregates": ["Transaction", "Refund"],
+          "modules": ["payment", "callback"]
+        },
+        {
+          "name": "Provider Abstraction",
+          "description": "Provider Pattern — abstracts internal simulation vs external gateway (Asaas). Feature-flag switchable at runtime.",
+          "aggregates": ["PaymentProvider"],
+          "modules": ["providers/asaas", "providers/internal"]
+        },
+        {
+          "name": "Card Vault",
+          "description": "Tokenized card storage. Never persists full card numbers. Cross-app reusable tokens.",
+          "aggregates": ["CardToken"],
+          "modules": ["card-vault"]
+        },
+        {
+          "name": "Split Engine",
+          "description": "Payment split logic for multi-party transactions (platform + vendor + delivery)",
+          "aggregates": ["Split"],
+          "modules": ["split"]
+        },
+        {
+          "name": "Webhook & Callback",
+          "description": "Inbound webhook processing (from Asaas) and outbound callback delivery (to ecosystem apps) with retry logic",
+          "aggregates": ["WebhookEvent"],
+          "modules": ["webhook", "callback"]
+        },
+        {
+          "name": "Admin Panel",
+          "description": "Supporting subdomain: admin dashboard, transaction management, provider config, feature flags, audit logs",
+          "aggregates": ["AdminUser", "AppRegistration", "FeatureFlag", "AuditLog"],
+          "modules": ["admin"]
+        }
+      ]
+    },
+    "project_structure": "see ecp-pay/ folder — 50+ files created following tech_spec.md Section 6 exactly",
+    "api_contracts": [
+      {
+        "group": "Payment API (app-facing)",
+        "auth": "X-API-Key header",
+        "prefix": "/pay",
+        "endpoints": [
+          { "method": "POST", "path": "/pay/pix", "description": "Create Pix charge (QR code + copy-paste)" },
+          { "method": "POST", "path": "/pay/card", "description": "Charge credit card (new or tokenized)" },
+          { "method": "POST", "path": "/pay/boleto", "description": "Issue boleto with barcode + Pix QR" },
+          { "method": "GET", "path": "/pay/transactions/:id", "description": "Get transaction status" },
+          { "method": "POST", "path": "/pay/transactions/:id/refund", "description": "Full or partial refund" },
+          { "method": "GET", "path": "/pay/cards/:customer_document", "description": "List saved cards for customer" },
+          { "method": "DELETE", "path": "/pay/cards/tokens/:token_id", "description": "Remove card token" },
+          { "method": "POST", "path": "/pay/webhooks/asaas", "description": "Receive Asaas webhook" },
+          { "method": "GET", "path": "/pay/health", "description": "Health check + active provider" }
+        ]
+      },
+      {
+        "group": "Admin API (web panel)",
+        "auth": "JWT Bearer token",
+        "prefix": "/admin",
+        "endpoints": [
+          { "method": "POST", "path": "/admin/auth/login", "description": "Admin login" },
+          { "method": "GET", "path": "/admin/auth/me", "description": "Current admin user" },
+          { "method": "GET", "path": "/admin/dashboard", "description": "KPIs and aggregated data" },
+          { "method": "GET", "path": "/admin/transactions", "description": "Paginated transaction list" },
+          { "method": "GET", "path": "/admin/transactions/summary", "description": "Summary by type/app/period" },
+          { "method": "GET", "path": "/admin/transactions/:id", "description": "Transaction detail" },
+          { "method": "GET", "path": "/admin/providers", "description": "Active provider info" },
+          { "method": "POST", "path": "/admin/providers/switch", "description": "Switch internal/external" },
+          { "method": "GET", "path": "/admin/feature-flags", "description": "List feature flags" },
+          { "method": "PATCH", "path": "/admin/feature-flags/:key", "description": "Update feature flag" },
+          { "method": "GET", "path": "/admin/config", "description": "General config" },
+          { "method": "PATCH", "path": "/admin/config", "description": "Update config" },
+          { "method": "GET", "path": "/admin/apps", "description": "Registered apps" },
+          { "method": "POST", "path": "/admin/apps", "description": "Register new app" },
+          { "method": "PATCH", "path": "/admin/apps/:id", "description": "Update app config" }
+        ]
+      }
+    ],
+    "db_schemas": "see ecp-pay/server/src/database/migrations/001-initial.sql — 10 tables + 16 indexes",
+    "adrs": [
+      {
+        "id": "ADR-001",
+        "title": "Provider Pattern for payment gateway abstraction",
+        "status": "accepted",
+        "context": "ECP ecosystem needs to work offline (dev/staging) and with real gateways (production). Apps should not know which gateway is active.",
+        "decision": "Implement PaymentProvider interface with two adapters (InternalAdapter, AsaasAdapter). Factory selects adapter based on feature flag PAYMENT_PROVIDER. Flag switchable at runtime via admin panel.",
+        "consequences": "All payment operations go through a single interface. Adding a new gateway (e.g., Stripe) means implementing one adapter class. No changes to consuming apps."
+      },
+      {
+        "id": "ADR-002",
+        "title": "SQLite as single-file embedded database",
+        "status": "accepted",
+        "context": "ECP Pay is a monorepo service used in local dev, staging, and small-scale production. Need zero-config database.",
+        "decision": "Use better-sqlite3 with WAL mode. Single file database-pay.sqlite. Migrations run on startup.",
+        "consequences": "No external DB server needed. Single npm install and the service runs. WAL mode allows concurrent reads. Trade-off: not suitable for high-scale horizontal deployment."
+      },
+      {
+        "id": "ADR-003",
+        "title": "Dual authentication: API Key for apps, JWT for admin",
+        "status": "accepted",
+        "context": "Two distinct user groups: ecosystem apps (machine-to-machine) and admin humans (web panel).",
+        "decision": "Apps authenticate via X-API-Key header checked against app_registrations table. Admin users authenticate via JWT issued at login. Separate middleware for each.",
+        "consequences": "Clean separation of concerns. Apps never need user credentials. Admin panel has proper session management with role-based access control."
+      },
+      {
+        "id": "ADR-004",
+        "title": "Idempotency via unique key per transaction",
+        "status": "accepted",
+        "context": "Network failures can cause duplicate payment requests. Must ensure a payment is created exactly once.",
+        "decision": "Require X-Idempotency-Key header on all mutating payment endpoints. Store as UNIQUE column in transactions table. On duplicate key, return existing result.",
+        "consequences": "Safe retries for all apps. UNIQUE constraint prevents double-charging at the database level."
+      },
+      {
+        "id": "ADR-005",
+        "title": "Card data never persisted — token-only vault",
+        "status": "accepted",
+        "context": "PCI compliance and security: raw card numbers and CVVs must not be stored anywhere.",
+        "decision": "Only store token + last4 + brand + holder_name in card_tokens table. Raw card data is passed to the provider and immediately discarded.",
+        "consequences": "Secure by design. Token is reusable across all ecosystem apps for the same customer. Trade-off: cannot re-display full card number."
+      },
+      {
+        "id": "ADR-006",
+        "title": "Webhook deduplication via event_id",
+        "status": "accepted",
+        "context": "External providers (Asaas) may retry webhook delivery, causing duplicate processing.",
+        "decision": "Store event_id as UNIQUE in webhook_events table. Check before processing. If duplicate, return 200 without re-processing.",
+        "consequences": "Idempotent webhook handling. No duplicate status changes or callbacks."
+      }
+    ],
+    "technical_constraints": [
+      "TypeScript strict mode — no 'any', no implicit nulls",
+      "All monetary values in centavos (integer) — NEVER float",
+      "UUID v4 for all primary keys",
+      "AppError class for all known errors — structured JSON response",
+      "Soft delete only — no physical deletion of records",
+      "Every transaction records source_app (which ecosystem app originated it)",
+      "Provider interface is the ONLY way to execute payment operations",
+      "Feature flag PAYMENT_PROVIDER switchable at runtime without restart",
+      "Internal and external modes return identical response payloads",
+      "Rate limiting: 100 transactions/minute per app",
+      "Audit log for all administrative actions"
+    ],
+    "files_created": {
+      "root": [
+        "package.json",
+        "tsconfig.base.json",
+        ".env",
+        ".env.example",
+        ".gitignore"
+      ],
+      "server": [
+        "server/package.json",
+        "server/tsconfig.json",
+        "server/src/server.ts",
+        "server/src/app.ts",
+        "server/src/database/connection.ts",
+        "server/src/database/seed.ts",
+        "server/src/database/migrations/001-initial.sql",
+        "server/src/types/fastify.d.ts",
+        "server/src/providers/payment-provider.interface.ts",
+        "server/src/providers/provider.factory.ts",
+        "server/src/providers/asaas/asaas.adapter.ts",
+        "server/src/providers/asaas/asaas.mapper.ts",
+        "server/src/providers/asaas/asaas.webhook.ts",
+        "server/src/providers/internal/internal.adapter.ts",
+        "server/src/providers/internal/internal.qrcode.ts",
+        "server/src/providers/internal/internal.boleto.ts",
+        "server/src/providers/internal/internal.scheduler.ts",
+        "server/src/modules/payment/payment.routes.ts",
+        "server/src/modules/payment/payment.service.ts",
+        "server/src/modules/payment/payment.schema.ts",
+        "server/src/modules/card-vault/card-vault.routes.ts",
+        "server/src/modules/card-vault/card-vault.service.ts",
+        "server/src/modules/card-vault/card-vault.schema.ts",
+        "server/src/modules/split/split.service.ts",
+        "server/src/modules/split/split.schema.ts",
+        "server/src/modules/webhook/webhook.routes.ts",
+        "server/src/modules/webhook/webhook.service.ts",
+        "server/src/modules/webhook/webhook.schema.ts",
+        "server/src/modules/callback/callback.service.ts",
+        "server/src/modules/callback/callback.retry.ts",
+        "server/src/modules/health/health.routes.ts",
+        "server/src/modules/admin/admin-auth.routes.ts",
+        "server/src/modules/admin/admin-dashboard.routes.ts",
+        "server/src/modules/admin/admin-transactions.routes.ts",
+        "server/src/modules/admin/admin-providers.routes.ts",
+        "server/src/modules/admin/admin-config.routes.ts",
+        "server/src/modules/admin/admin-apps.routes.ts",
+        "server/src/shared/errors/app-error.ts",
+        "server/src/shared/errors/error-codes.ts",
+        "server/src/shared/middleware/api-key-auth.ts",
+        "server/src/shared/middleware/admin-auth.ts",
+        "server/src/shared/middleware/rate-limiter.ts",
+        "server/src/shared/middleware/error-handler.ts",
+        "server/src/shared/utils/uuid.ts",
+        "server/src/shared/utils/money.ts",
+        "server/src/shared/utils/audit.ts",
+        "server/src/shared/utils/feature-flags.ts"
+      ],
+      "web": [
+        "web/package.json",
+        "web/index.html",
+        "web/vite.config.ts",
+        "web/tailwind.config.ts",
+        "web/src/main.tsx",
+        "web/src/App.tsx",
+        "web/src/styles/globals.css"
+      ]
+    }
+  },
+  "next_hitl": 7
+}

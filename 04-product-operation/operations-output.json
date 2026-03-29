@@ -1,0 +1,58 @@
+{
+  "agent": "operations",
+  "phase": "04-product-operation",
+  "deliverables": {
+    "deploy_strategy": {
+      "environment": "local development (v1)",
+      "command": "npm run dev",
+      "ports": { "api": 3335, "admin": 5175 },
+      "database": "SQLite (database-pay.sqlite, auto-created)"
+    },
+    "slos": [
+      { "metric": "API Availability", "target": "99.9%", "measurement": "uptime of /pay/health" },
+      { "metric": "Webhook 1st attempt delivery", "target": ">99%", "measurement": "callback_status = delivered on first attempt" },
+      { "metric": "API Latency p95", "target": "<300ms", "measurement": "excluding gateway latency" }
+    ],
+    "dora_metrics": {
+      "deployment_frequency": "on-demand (local dev)",
+      "lead_time_for_changes": "minutes (hot reload via tsx)",
+      "change_failure_rate": "tracked via audit_logs",
+      "mean_time_to_restore": "restart server (seconds)"
+    },
+    "monitoring": {
+      "health_endpoint": "GET /pay/health",
+      "audit_logs": "GET /admin/audit-logs",
+      "dashboard": "admin panel at localhost:5175"
+    },
+    "ab_tests": [
+      {
+        "id": "EXP-001",
+        "name": "Internal Mode Auto-Approve Delay",
+        "hypothesis": "Reducing Pix auto-approve delay from 5s to 1s improves developer testing velocity",
+        "metric": "Time to complete a payment test cycle",
+        "variants": ["5s delay (control)", "1s delay (variant)"],
+        "linked_krs": ["KR-04"],
+        "status": "planned"
+      },
+      {
+        "id": "EXP-002",
+        "name": "Transaction Timeline Granularity",
+        "hypothesis": "Adding elapsed time between steps in the timeline reduces investigation time for operators",
+        "metric": "Time from opening transaction detail to identifying root cause",
+        "variants": ["Timestamps only (control)", "Timestamps + elapsed (variant)"],
+        "linked_krs": ["KR-05"],
+        "status": "planned"
+      },
+      {
+        "id": "EXP-003",
+        "name": "Provider Switch Confirmation Flow",
+        "hypothesis": "Adding impact preview (pending tx count) reduces accidental provider switches",
+        "metric": "Accidental switch-backs within 5 minutes",
+        "variants": ["Simple confirmation (control)", "Impact preview (variant)"],
+        "linked_krs": ["KR-03"],
+        "status": "planned"
+      }
+    ]
+  },
+  "next_hitl": 11
+}

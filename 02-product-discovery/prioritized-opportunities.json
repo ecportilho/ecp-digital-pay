@@ -1,0 +1,263 @@
+{
+  "agent": "product-owner",
+  "phase": "02-product-discovery",
+  "step": "prioritization",
+  "deliverables": {
+    "prioritization_framework": "WSJF",
+    "scoring_methodology": {
+      "formula": "WSJF = (business_value + time_criticality + opportunity_enablement) / effort_weight",
+      "effort_weights": { "S": 1, "M": 2, "L": 3, "XL": 5 },
+      "scale": "1-10 for each value dimension; higher WSJF = higher priority"
+    },
+    "prioritized_opportunities": [
+      {
+        "rank": 1,
+        "opportunity_id": "OPP-01",
+        "description": "Cada novo app precisa reimplementar toda a lógica de integração com o Asaas (auth, payloads, tratamento de erros, parsing de webhooks), gerando semanas de trabalho repetitivo",
+        "linked_krs": ["KR-01", "KR-02", "KR-03"],
+        "business_value": 10,
+        "time_criticality": 10,
+        "opportunity_enablement": 10,
+        "effort": "L",
+        "wsjf_score": 10.0,
+        "rationale": "This IS the product. Eliminating duplicated gateway integration is the foundational reason ECP Pay exists. Without solving this, no other opportunity matters. High effort (L) but the enablement score is maximum because every other opportunity depends on a unified API layer existing first. Serves 3 KRs simultaneously."
+      },
+      {
+        "rank": 2,
+        "opportunity_id": "OPP-09",
+        "description": "Apps consumidores precisam de estabilidade contratual — o contrato de API que consomem não pode quebrar quando decisões de infraestrutura de pagamento mudam",
+        "linked_krs": ["KR-01", "KR-03"],
+        "business_value": 10,
+        "time_criticality": 9,
+        "opportunity_enablement": 9,
+        "effort": "M",
+        "wsjf_score": 14.0,
+        "rationale": "Contract stability is the core promise of ECP Pay (Product Principle PP-01). Designing the API contract correctly from day one is medium effort but has massive downstream impact — every app that integrates depends on this contract never breaking. Numerically highest WSJF but ranked #2 because it is architecturally co-dependent with OPP-01 (they are solved together)."
+      },
+      {
+        "rank": 3,
+        "opportunity_id": "OPP-08",
+        "description": "O ecossistema quer liberdade para negociar com múltiplos gateways e escolher o melhor por custo/feature sem retrabalho nos apps",
+        "linked_krs": ["KR-03"],
+        "business_value": 9,
+        "time_criticality": 7,
+        "opportunity_enablement": 10,
+        "effort": "M",
+        "wsjf_score": 13.0,
+        "rationale": "The Provider Pattern (adapter interface) is what makes ECP Pay an abstraction layer, not just a proxy. Building the provider interface correctly enables Internal mode (OPP-10/11/12), future Stripe support, and zero-change gateway swaps. Medium effort because it is an interface + one concrete adapter (Asaas). Extremely high enablement — unlocks OPP-07, OPP-10, OPP-11, OPP-12."
+      },
+      {
+        "rank": 4,
+        "opportunity_id": "OPP-10",
+        "description": "Testes automatizados de fluxos de pagamento dependem de sandbox do Asaas que é lento, instável e requer credenciais por desenvolvedor",
+        "linked_krs": ["KR-04", "KR-01"],
+        "business_value": 9,
+        "time_criticality": 9,
+        "opportunity_enablement": 8,
+        "effort": "M",
+        "wsjf_score": 13.0,
+        "rationale": "Internal mode for testing is a first-class feature (PP-02), not a shortcut. It unblocks the entire development team from day one — no Asaas credentials needed, no sandbox instability, deterministic test results. Medium effort because the provider pattern (OPP-08) provides the interface; this is implementing the InternalProvider adapter. High time criticality because developers need this immediately to build everything else."
+      },
+      {
+        "rank": 5,
+        "opportunity_id": "OPP-14",
+        "description": "Sem idempotência e deduplicação, cenários de retry podem causar cobranças duplicadas ou processamento inconsistente",
+        "linked_krs": ["KR-05", "KR-02"],
+        "business_value": 10,
+        "time_criticality": 10,
+        "opportunity_enablement": 7,
+        "effort": "M",
+        "wsjf_score": 13.5,
+        "rationale": "Idempotency is non-negotiable in financial systems (PP-06, RN-01). A duplicate charge destroys trust permanently. This must be baked into the transaction layer from the start — retrofitting idempotency is exponentially harder. Medium effort (UUID-based dedup on the transaction table) but absolute business criticality."
+      },
+      {
+        "rank": 6,
+        "opportunity_id": "OPP-02",
+        "description": "Desenvolvedores precisam entender a API proprietária de cada gateway em vez de consumir um contrato único e padronizado",
+        "linked_krs": ["KR-01", "KR-03"],
+        "business_value": 8,
+        "time_criticality": 8,
+        "opportunity_enablement": 7,
+        "effort": "M",
+        "wsjf_score": 11.5,
+        "rationale": "Directly complements OPP-01 and OPP-09. The unified API documentation and SDK surface is what transforms ECP Pay from 'internal infrastructure' to 'developer product'. Developers should learn one contract, not N gateway APIs. Medium effort — mostly API design + documentation, building on the contract already defined by OPP-09."
+      },
+      {
+        "rank": 7,
+        "opportunity_id": "OPP-12",
+        "description": "Ambiente de staging precisa ser determinístico e controlável — comportamento previsível para validação de fluxos antes de ir para produção",
+        "linked_krs": ["KR-04"],
+        "business_value": 7,
+        "time_criticality": 8,
+        "opportunity_enablement": 7,
+        "effort": "S",
+        "wsjf_score": 22.0,
+        "rationale": "Highest raw WSJF score due to small effort — once Internal mode exists (OPP-10), deterministic staging is a configuration concern (env flag + predictable responses). Small incremental effort delivers high value for QA and release confidence. Ranked #7 rather than #1 because it depends on OPP-10 being solved first."
+      },
+      {
+        "rank": 8,
+        "opportunity_id": "OPP-13",
+        "description": "Apps do ecossistema precisam de garantia de que callbacks de pagamento serão entregues mesmo em cenários de falha temporária",
+        "linked_krs": ["KR-05", "KR-02"],
+        "business_value": 9,
+        "time_criticality": 7,
+        "opportunity_enablement": 6,
+        "effort": "M",
+        "wsjf_score": 11.0,
+        "rationale": "Webhook reliability with retry (RN-10: 30s, 2min, 10min backoff) is essential for production trust. Apps depend on callbacks to update their own state — a missed webhook means a user paid but the app does not know. Medium effort for the retry queue + exponential backoff mechanism."
+      },
+      {
+        "rank": 9,
+        "opportunity_id": "OPP-06",
+        "description": "Investigar falhas em transações exige acessar logs em múltiplos sistemas, sem correlação entre o pedido do app e o status no gateway",
+        "linked_krs": ["KR-02", "KR-05"],
+        "business_value": 8,
+        "time_criticality": 6,
+        "opportunity_enablement": 5,
+        "effort": "M",
+        "wsjf_score": 9.5,
+        "rationale": "Transaction timeline and correlated logging (PP-03) are critical for operations. When a payment fails, the operator needs to trace request → gateway → webhook → callback in one view. Medium effort — requires structured logging + event timeline in the transaction model. Not higher ranked because it delivers operational value (post-launch) rather than enabling the core product."
+      },
+      {
+        "rank": 10,
+        "opportunity_id": "OPP-07",
+        "description": "Se o Asaas mudar taxas, limites ou API, todos os apps que integram diretamente precisam ser atualizados simultaneamente",
+        "linked_krs": ["KR-03"],
+        "business_value": 8,
+        "time_criticality": 5,
+        "opportunity_enablement": 6,
+        "effort": "M",
+        "wsjf_score": 9.5,
+        "rationale": "This is the 'insurance policy' value of provider abstraction. Important strategically but time criticality is lower — Asaas is stable today and a sudden breaking change is unlikely in the short term (AS-04 confirms Asaas-only for v1). The provider pattern from OPP-08 already solves this architecturally; this opportunity is about validating the swap works in practice."
+      },
+      {
+        "rank": 11,
+        "opportunity_id": "OPP-03",
+        "description": "Novos desenvolvedores precisam de um caminho rápido para rodar o ecossistema completo e testar fluxos de pagamento sem configurações complexas",
+        "linked_krs": ["KR-01", "KR-04"],
+        "business_value": 7,
+        "time_criticality": 5,
+        "opportunity_enablement": 5,
+        "effort": "S",
+        "wsjf_score": 17.0,
+        "rationale": "High raw WSJF due to small effort — once Internal mode exists, onboarding is mostly documentation + docker-compose setup. High value for team scaling but less critical than core infrastructure. Ranked #11 because it is a consequence of solving OPP-10 and OPP-02 well, not a standalone problem."
+      },
+      {
+        "rank": 12,
+        "opportunity_id": "OPP-04",
+        "description": "Operadores financeiros não têm visão consolidada das transações do ecossistema — precisam acessar dashboards separados por gateway",
+        "linked_krs": ["KR-02"],
+        "business_value": 7,
+        "time_criticality": 4,
+        "opportunity_enablement": 4,
+        "effort": "L",
+        "wsjf_score": 5.0,
+        "rationale": "The admin dashboard is valuable (PP-05) but is a consumer of the centralized ledger, not an enabler of it. The ledger (database) is built as part of OPP-01; the dashboard is a UI layer on top. Large effort (full web admin panel) and lower time criticality — operators can use direct DB queries or basic endpoints initially. Important for v1 completeness but not for core infrastructure."
+      },
+      {
+        "rank": 13,
+        "opportunity_id": "OPP-15",
+        "description": "Operadores precisam identificar e agir rapidamente sobre falhas — replay de webhooks, reprocessamento e estorno precisam ser acessíveis sem intervenção de engenharia",
+        "linked_krs": ["KR-05"],
+        "business_value": 7,
+        "time_criticality": 4,
+        "opportunity_enablement": 3,
+        "effort": "M",
+        "wsjf_score": 7.0,
+        "rationale": "Operational tooling (webhook replay, manual refund, reprocess) is important for production maturity but requires the core transaction engine and webhook system to exist first. Medium effort for the admin actions. Lower time criticality because these are needed at production scale, not during initial development."
+      },
+      {
+        "rank": 14,
+        "opportunity_id": "OPP-11",
+        "description": "Demos e apresentações de produto ficam reféns de conectividade e disponibilidade de sandboxes de terceiros",
+        "linked_krs": ["KR-04"],
+        "business_value": 5,
+        "time_criticality": 3,
+        "opportunity_enablement": 3,
+        "effort": "S",
+        "wsjf_score": 11.0,
+        "rationale": "Nice-to-have that comes for free once Internal mode exists (OPP-10). Small effort because it is literally the same feature — just a different use case (demos vs. testing). Lower priority because demos are not blocking development or production readiness. High raw WSJF due to tiny effort but low standalone impact."
+      },
+      {
+        "rank": 15,
+        "opportunity_id": "OPP-05",
+        "description": "O owner da plataforma precisa entender quanto cada app do ecossistema transaciona e qual a distribuição entre métodos de pagamento",
+        "linked_krs": ["KR-02"],
+        "business_value": 6,
+        "time_criticality": 3,
+        "opportunity_enablement": 3,
+        "effort": "L",
+        "wsjf_score": 4.0,
+        "rationale": "Business intelligence and analytics dashboards are valuable but depend on having transaction volume first. Large effort for proper charting, filtering, and reporting. Lowest priority because this delivers insight (analytics) rather than capability (processing payments). Can be solved with simple SQL queries initially; a proper BI dashboard is a Phase 2 feature."
+      }
+    ],
+    "recommended_discovery_scope": [
+      "OPP-01",
+      "OPP-09",
+      "OPP-08",
+      "OPP-10",
+      "OPP-14",
+      "OPP-02",
+      "OPP-12",
+      "OPP-13",
+      "OPP-06"
+    ],
+    "deferred_opportunities": [
+      "OPP-07",
+      "OPP-03",
+      "OPP-04",
+      "OPP-15",
+      "OPP-11",
+      "OPP-05"
+    ],
+    "scope_rationale": "The discovery scope covers 9 opportunities organized into 3 strategic pillars: (1) CORE INFRASTRUCTURE — OPP-01 + OPP-09 + OPP-08 form the indivisible foundation: unified API, stable contract, and provider abstraction. These three are co-dependent and must be designed together. (2) DEVELOPMENT VELOCITY — OPP-10 + OPP-12 + OPP-02 enable the entire ecosystem to develop and test without external dependencies, fulfilling Product Principle PP-02 and KR-04. (3) PRODUCTION RELIABILITY — OPP-14 + OPP-13 + OPP-06 ensure financial-grade safety: idempotency prevents duplicate charges, webhook retry guarantees event delivery, and correlated logging enables incident investigation. The 6 deferred opportunities are either: (a) naturally solved as byproducts of the core work (OPP-03 and OPP-11 come free with Internal mode), (b) UI layers that consume the core but do not enable it (OPP-04, OPP-05, OPP-15), or (c) insurance-value items where the architecture already provides the capability and validation can wait (OPP-07). This scope ensures ECP Pay is a functional, reliable, developer-friendly payment infrastructure before investing in dashboards, analytics, or operational tooling.",
+    "strategic_pillars": [
+      {
+        "pillar": "Core Infrastructure",
+        "opportunities": ["OPP-01", "OPP-09", "OPP-08"],
+        "krs_served": ["KR-01", "KR-02", "KR-03"],
+        "rationale": "The unified API layer, stable contract, and provider abstraction pattern are architecturally inseparable. They form the skeleton on which everything else is built."
+      },
+      {
+        "pillar": "Development Velocity",
+        "opportunities": ["OPP-10", "OPP-12", "OPP-02"],
+        "krs_served": ["KR-04", "KR-01"],
+        "rationale": "Internal mode for testing, deterministic staging, and unified developer documentation eliminate all external dependencies and reduce integration time from weeks to hours."
+      },
+      {
+        "pillar": "Production Reliability",
+        "opportunities": ["OPP-14", "OPP-13", "OPP-06"],
+        "krs_served": ["KR-05", "KR-02"],
+        "rationale": "Financial-grade idempotency, guaranteed webhook delivery with retry, and full transaction observability ensure ECP Pay is trusted with real money from day one."
+      }
+    ],
+    "kr_coverage_matrix": {
+      "KR-01": {
+        "description": "Reduzir tempo de integração de semanas para horas",
+        "served_by": ["OPP-01", "OPP-09", "OPP-02", "OPP-10"],
+        "coverage": "full"
+      },
+      "KR-02": {
+        "description": "Centralizar 100% das transações em um único ledger",
+        "served_by": ["OPP-01", "OPP-14", "OPP-13", "OPP-06"],
+        "coverage": "full"
+      },
+      "KR-03": {
+        "description": "Troca de gateway sem alteração nos apps consumidores",
+        "served_by": ["OPP-08", "OPP-09"],
+        "coverage": "full"
+      },
+      "KR-04": {
+        "description": "100% dos cenários testáveis sem internet",
+        "served_by": ["OPP-10", "OPP-12"],
+        "coverage": "full"
+      },
+      "KR-05": {
+        "description": "99.9% uptime e >99% webhook delivery",
+        "served_by": ["OPP-14", "OPP-13", "OPP-06"],
+        "coverage": "full"
+      }
+    }
+  },
+  "next_hitl": 2
+}

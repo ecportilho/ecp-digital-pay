@@ -1,0 +1,139 @@
+{
+  "agent": "ai-engineer",
+  "phase": "03-product-delivery",
+  "status": "completed",
+  "timestamp": "2026-03-28T12:00:00Z",
+  "deliverables": {
+    "ai_integrations": [
+      {
+        "id": "AI-01",
+        "name": "Internal Fraud Simulation",
+        "description": "Configurable rules engine in InternalAdapter for simulating fraud detection. Card charges are rejected if last4 = '9999' (CARD_DECLINED) or if amount > R$10.000 / 1.000.000 centavos (LIMIT_EXCEEDED). Pix charges are auto-approved after a configurable delay (INTERNAL_SIMULATION_DELAY env var, default 3s). Boleto requires manual approval via admin panel. These rules provide a deterministic test harness that mirrors real-world fraud rejection patterns.",
+        "status": "implemented_in_backend",
+        "location": "server/src/providers/internal/internal.adapter.ts",
+        "business_rules_mapped": ["RN-05", "RN-06", "RN-04", "RN-07"],
+        "configuration": {
+          "INTERNAL_SIMULATION_DELAY": "ms until simulated Pix settlement (default 3000)",
+          "INTERNAL_AUTO_APPROVE_CARDS": "boolean, auto-approve cards (default true)",
+          "INTERNAL_MAX_SIMULATED_AMOUNT": "max amount in centavos per simulated tx (default 10000000)"
+        }
+      },
+      {
+        "id": "AI-02",
+        "name": "Smart Transaction Search (Admin Panel)",
+        "description": "Natural language search capability for the admin transactions page. Translates human queries like 'show me all failed pix transactions from ecp-food this week' into structured API filters (type=pix, status=failed, source_app=ecp-food, period=this_week). Leverages the existing /admin/transactions endpoint which already supports filters: type, status, source_app, period, amount range, and customer_document.",
+        "status": "planned",
+        "location": "web/src/routes/transactions.tsx (search bar) -> server/src/modules/admin/admin-transactions.routes.ts (filter API)",
+        "implementation_notes": "Can be implemented as a lightweight NLP parser (regex + keyword matching) or via LLM API call. Regex approach recommended first for cost efficiency. LLM fallback for complex queries. No new backend endpoints needed — only a frontend translation layer from natural language to existing query params.",
+        "priority": "low",
+        "complexity": "medium"
+      }
+    ],
+    "guardrails": [
+      {
+        "id": "GR-01",
+        "name": "Rate Limiting per App",
+        "description": "100 transactions/minute per registered app, enforced via rate-limiter middleware on all /pay/* endpoints. Prevents abuse and ensures fair resource allocation across ecosystem apps.",
+        "status": "implemented",
+        "location": "server/src/shared/middleware/rate-limiter.ts",
+        "business_rule": "RN-13"
+      },
+      {
+        "id": "GR-02",
+        "name": "Input Validation via Zod Schemas",
+        "description": "All API inputs validated with Zod schemas before reaching business logic. Prevents injection attacks, malformed data, and type coercion issues. Every payment module has its own .schema.ts file defining strict contracts.",
+        "status": "implemented",
+        "locations": [
+          "server/src/modules/payment/payment.schema.ts",
+          "server/src/modules/card-vault/card-vault.schema.ts",
+          "server/src/modules/split/split.schema.ts",
+          "server/src/modules/webhook/webhook.schema.ts"
+        ],
+        "business_rule": "RN-02"
+      },
+      {
+        "id": "GR-03",
+        "name": "No PII in Logs / Card Data Never Stored",
+        "description": "Full card numbers and CVVs are NEVER persisted in the database. Only token + last4 + brand + holder_name are stored in the card_tokens table. Audit logs record actions but never sensitive payment data. This is enforced by the PaymentProvider interface contract which only returns tokenized data.",
+        "status": "implemented",
+        "location": "server/src/providers/payment-provider.interface.ts (CardChargeResult only has card_token, card_last4, card_brand)",
+        "business_rules": ["RN-08", "RN-16"]
+      },
+      {
+        "id": "GR-04",
+        "name": "Idempotency Prevention of Duplicate Charges",
+        "description": "Every transaction requires a unique idempotency_key (UUID v4). If the same key is sent again, the existing result is returned without processing a new charge. Webhook events also have unique event_id with dedup via webhook_events table. This prevents double-charging customers due to retries or network issues.",
+        "status": "implemented",
+        "locations": [
+          "server/src/modules/payment/payment.service.ts (idempotency_key check)",
+          "server/src/modules/webhook/webhook.service.ts (event_id dedup)"
+        ],
+        "business_rules": ["RN-01", "RN-19"]
+      },
+      {
+        "id": "GR-05",
+        "name": "Service Authentication (App Isolation)",
+        "description": "Each ecosystem app (ecp-bank, ecp-emps, ecp-food) authenticates via its own X-API-Key registered in app_registrations table. Admin panel uses separate JWT auth. This ensures apps cannot impersonate each other and all transactions are traceable to their source.",
+        "status": "implemented",
+        "locations": [
+          "server/src/shared/middleware/api-key-auth.ts",
+          "server/src/shared/middleware/admin-auth.ts"
+        ],
+        "business_rules": ["RN-14", "RN-15"]
+      },
+      {
+        "id": "GR-06",
+        "name": "Provider Parity Contract",
+        "description": "Internal and External (Asaas) providers return identical response shapes. Consumer apps never know which provider is active. This guardrail ensures mode switches cannot break downstream integrations.",
+        "status": "implemented",
+        "location": "server/src/providers/payment-provider.interface.ts (PaymentProvider interface enforced by both adapters)",
+        "business_rule": "Rule 16 (tech_spec)"
+      },
+      {
+        "id": "GR-07",
+        "name": "Audit Trail for All Administrative Actions",
+        "description": "Every configuration change, provider switch, manual retry, and admin action is recorded in audit_logs with user_id, timestamp, IP address, and metadata. Provides complete traceability for financial compliance.",
+        "status": "implemented",
+        "location": "server/src/shared/utils/audit.ts + audit_logs table",
+        "business_rule": "RN-12"
+      }
+    ],
+    "future_opportunities": [
+      {
+        "id": "FO-01",
+        "name": "Anomaly Detection on Transaction Patterns",
+        "description": "Analyze historical transaction data to detect anomalous patterns: unusual volume spikes from a single app, transactions outside normal hours, sudden changes in average ticket size, repeated failures from same customer_document. Could run as a background job using statistical thresholds (no ML needed initially).",
+        "priority": "medium",
+        "complexity": "medium",
+        "prerequisite": "Sufficient transaction history (min 1000+ transactions across apps)",
+        "approach": "Phase 1: Statistical rules (z-score on volume, moving average on amounts). Phase 2: ML model if pattern complexity warrants it."
+      },
+      {
+        "id": "FO-02",
+        "name": "Intelligent Webhook Retry Strategy",
+        "description": "Replace fixed retry schedule (30s, 2min, 10min) with adaptive backoff based on historical delivery success rates per app. If ecp-food consistently fails at 30s but succeeds at 60s, adjust automatically.",
+        "priority": "low",
+        "complexity": "low",
+        "prerequisite": "Webhook delivery history with timestamps and outcomes"
+      },
+      {
+        "id": "FO-03",
+        "name": "Transaction Forecasting Dashboard Widget",
+        "description": "Predict expected transaction volume for the next 24h/7d based on historical patterns (day-of-week, time-of-day seasonality). Display as a forecast line on the admin dashboard VolumeChart. Useful for capacity planning.",
+        "priority": "low",
+        "complexity": "medium",
+        "prerequisite": "At least 30 days of transaction data"
+      },
+      {
+        "id": "FO-04",
+        "name": "Auto-Classification of Failed Transactions",
+        "description": "Categorize transaction failures into actionable buckets (customer-side: insufficient funds, expired card; system-side: timeout, provider error; fraud: suspicious pattern). Surface these categories in the admin dashboard for faster triage.",
+        "priority": "medium",
+        "complexity": "low",
+        "prerequisite": "Error code taxonomy from Asaas provider responses"
+      }
+    ],
+    "recommendation": "ECP Pay is infrastructure-first. The Internal Provider fraud simulation rules (AI-01) are already implemented and serve dual purpose: development convenience and behavioral testing. Smart Transaction Search (AI-02) is a nice-to-have for admin UX but not critical. AI features should be added incrementally after core payment stability is proven in production with real Asaas traffic. The guardrails (rate limiting, Zod validation, no PII storage, idempotency, service auth, audit trail) form a solid security baseline that requires no AI enhancement — they are deterministic and reliable by design."
+  },
+  "next_hitl": "8.5"
+}

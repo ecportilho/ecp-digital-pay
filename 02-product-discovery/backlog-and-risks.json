@@ -1,0 +1,947 @@
+{
+  "agent": "product-owner",
+  "phase": "02-product-discovery",
+  "step": "backlog-structuring",
+  "deliverables": {
+    "epics": [
+      {
+        "id": "EP-01",
+        "title": "Infraestrutura Central de Pagamentos",
+        "hypothesis": "We believe that a unified payment API layer with provider abstraction and stable contract will result in any ecosystem app processing any payment method with a single call, without knowing which gateway is active",
+        "opportunities": ["OPP-01", "OPP-09", "OPP-08"],
+        "krs_impacted": ["KR-01", "KR-02", "KR-03"],
+        "features": [
+          {
+            "id": "FT-01",
+            "epic_id": "EP-01",
+            "title": "API Unificada de Pagamentos (Pix, Cartão, Boleto)",
+            "benefit_hypothesis": "Developers integrate once with a single REST contract and process all payment types, reducing integration time from weeks to hours",
+            "acceptance_criteria": [
+              "POST /pay/pix creates a Pix charge and returns QR code + copy-paste text",
+              "POST /pay/card charges a card (new or tokenized) and returns status",
+              "POST /pay/boleto issues a boleto with barcode and optional Pix QR",
+              "GET /pay/transactions/:id returns transaction status for any payment type",
+              "All endpoints require Authorization, X-Source-App, and X-Idempotency-Key headers",
+              "Response payload is identical regardless of active provider (internal or external)"
+            ],
+            "stories": [
+              {
+                "id": "US-01",
+                "feature_id": "FT-01",
+                "title": "Como Developer ECP, quero criar uma cobrança Pix via API, para gerar QR Code e copia-e-cola para o cliente final",
+                "acceptance_criteria": [
+                  {
+                    "scenario": "Successful Pix charge creation",
+                    "given": "An authenticated app with valid API key and X-Source-App header",
+                    "when": "POST /pay/pix with amount (centavos), customer_name, customer_document, and X-Idempotency-Key",
+                    "then": "Returns 201 with transaction_id, qr_code (base64), qr_code_text, expiration, and status 'pending'"
+                  },
+                  {
+                    "scenario": "Pix charge with missing idempotency key",
+                    "given": "An authenticated app sends a valid Pix payload",
+                    "when": "POST /pay/pix without X-Idempotency-Key header",
+                    "then": "Returns 400 with error code IDEMPOTENCY_KEY_REQUIRED"
+                  },
+                  {
+                    "scenario": "Duplicate Pix charge with same idempotency key",
+                    "given": "A Pix charge already exists with idempotency_key 'abc-123'",
+                    "when": "POST /pay/pix with the same idempotency_key 'abc-123'",
+                    "then": "Returns 200 with the existing transaction result (no new charge created)"
+                  }
+                ],
+                "business_rules": ["RN-01", "RN-02", "RN-14", "RN-18"],
+                "effort_points": "M"
+              },
+              {
+                "id": "US-02",
+                "feature_id": "FT-01",
+                "title": "Como Developer ECP, quero cobrar um cartão de crédito via API, para processar pagamentos à vista ou parcelados",
+                "acceptance_criteria": [
+                  {
+                    "scenario": "Successful card charge with new card",
+                    "given": "An authenticated app with valid credentials",
+                    "when": "POST /pay/card with amount, customer data, card_number, card_expiry, card_cvv, card_holder_name, and installments=1",
+                    "then": "Returns 201 with transaction_id, status 'completed' or 'failed', card_last4, and card_brand"
+                  },
+                  {
+                    "scenario": "Card charge with saved token",
+                    "given": "A card_token exists in the vault for the customer",
+                    "when": "POST /pay/card with amount, customer data, and card_token (without raw card data)",
+                    "then": "Returns 201 with transaction result using the tokenized card"
+                  },
+                  {
+                    "scenario": "Card charge with installments",
+                    "given": "An authenticated app sends a card charge with installments=6",
+                    "when": "POST /pay/card with valid card data and installments between 2 and 12",
+                    "then": "Returns 201 with card_installments=6 and total amount divided accordingly"
+                  }
+                ],
+                "business_rules": ["RN-01", "RN-02", "RN-16", "RN-14"],
+                "effort_points": "M"
+              },
+              {
+                "id": "US-03",
+                "feature_id": "FT-01",
+                "title": "Como Developer ECP, quero emitir um boleto registrado via API, para oferecer pagamento via boleto com QR Code Pix embutido",
+                "acceptance_criteria": [
+                  {
+                    "scenario": "Successful boleto issuance",
+                    "given": "An authenticated app with valid credentials",
+                    "when": "POST /pay/boleto with amount, customer data, due_date, and description",
+                    "then": "Returns 201 with transaction_id, barcode, digitable_line, pix_qr_code, due_date, and status 'pending'"
+                  },
+                  {
+                    "scenario": "Boleto with discount for early payment",
+                    "given": "An authenticated app sends boleto with discount_amount=500 and discount_days=5",
+                    "when": "POST /pay/boleto with valid payload including discount fields",
+                    "then": "Returns 201 with boleto that includes discount information in the response"
+                  }
+                ],
+                "business_rules": ["RN-01", "RN-02", "RN-14", "RN-18"],
+                "effort_points": "M"
+              },
+              {
+                "id": "US-04",
+                "feature_id": "FT-01",
+                "title": "Como Developer ECP, quero consultar o status de qualquer transação, para atualizar a UI do meu app em tempo real",
+                "acceptance_criteria": [
+                  {
+                    "scenario": "Successful transaction status query",
+                    "given": "A transaction with id 'tx-123' exists in the system",
+                    "when": "GET /pay/transactions/tx-123 with valid API key",
+                    "then": "Returns 200 with full transaction data including current status, type, amount, timestamps"
+                  },
+                  {
+                    "scenario": "Transaction not found",
+                    "given": "No transaction with id 'tx-nonexistent' exists",
+                    "when": "GET /pay/transactions/tx-nonexistent",
+                    "then": "Returns 404 with error code TRANSACTION_NOT_FOUND"
+                  }
+                ],
+                "business_rules": ["RN-14"],
+                "effort_points": "S"
+              },
+              {
+                "id": "US-05",
+                "feature_id": "FT-01",
+                "title": "Como Developer ECP, quero estornar uma transação total ou parcialmente, para devolver valores ao cliente quando necessário",
+                "acceptance_criteria": [
+                  {
+                    "scenario": "Full refund of card transaction",
+                    "given": "A completed card transaction 'tx-123' with amount 5000 (R$50,00)",
+                    "when": "POST /pay/transactions/tx-123/refund without amount (full refund)",
+                    "then": "Returns 201 with refund_id, amount=5000, status='refunded', and original transaction status changes to 'refunded'"
+                  },
+                  {
+                    "scenario": "Partial refund of card transaction",
+                    "given": "A completed card transaction 'tx-123' with amount 5000",
+                    "when": "POST /pay/transactions/tx-123/refund with amount=2000",
+                    "then": "Returns 201 with refund_id, amount=2000, and original transaction status changes to 'partially_refunded'"
+                  },
+                  {
+                    "scenario": "Refund of boleto (not allowed)",
+                    "given": "A completed boleto transaction 'tx-456'",
+                    "when": "POST /pay/transactions/tx-456/refund",
+                    "then": "Returns 422 with error code BOLETO_NOT_REFUNDABLE"
+                  }
+                ],
+                "business_rules": ["RN-01", "RN-17", "RN-14"],
+                "effort_points": "M"
+              }
+            ]
+          },
+          {
+            "id": "FT-02",
+            "epic_id": "EP-01",
+            "title": "Provider Pattern com Abstração de Gateway",
+            "benefit_hypothesis": "The ecosystem can switch payment gateways with zero code changes in consuming apps, protecting against vendor lock-in and enabling cost optimization",
+            "acceptance_criteria": [
+              "PaymentProvider interface defines contract for all payment operations",
+              "AsaasAdapter implements PaymentProvider and maps to Asaas API v3",
+              "InternalAdapter implements PaymentProvider with local simulation",
+              "ProviderFactory returns the active adapter based on PAYMENT_PROVIDER flag",
+              "Switching provider via admin endpoint does not require service restart",
+              "Response payloads are identical between Internal and Asaas modes"
+            ],
+            "stories": [
+              {
+                "id": "US-06",
+                "feature_id": "FT-02",
+                "title": "Como Platform Owner, quero alternar entre provider Internal e Asaas via painel admin, para controlar o modo de operação sem tocar em código",
+                "acceptance_criteria": [
+                  {
+                    "scenario": "Switch from Internal to Asaas",
+                    "given": "Current provider is 'internal' and admin user has 'admin' role",
+                    "when": "POST /admin/providers/switch with mode='external' and confirmation=true",
+                    "then": "Provider switches to Asaas adapter, audit log records the change with user_id and timestamp, response confirms new mode"
+                  },
+                  {
+                    "scenario": "Switch requires confirmation",
+                    "given": "Admin user attempts to switch provider",
+                    "when": "POST /admin/providers/switch without confirmation=true",
+                    "then": "Returns 400 with message requiring explicit confirmation due to impact on in-flight transactions"
+                  },
+                  {
+                    "scenario": "Non-admin cannot switch provider",
+                    "given": "A user with role 'operator' is logged in",
+                    "when": "POST /admin/providers/switch",
+                    "then": "Returns 403 with error code INSUFFICIENT_PERMISSIONS"
+                  }
+                ],
+                "business_rules": ["RN-03", "RN-12", "RN-15"],
+                "effort_points": "M"
+              },
+              {
+                "id": "US-07",
+                "feature_id": "FT-02",
+                "title": "Como Developer ECP, quero que o contrato da API seja idêntico independente do provider ativo, para que meu app funcione sem alterações em qualquer modo",
+                "acceptance_criteria": [
+                  {
+                    "scenario": "Pix response parity between modes",
+                    "given": "A Pix charge is created with identical payload",
+                    "when": "The same request is processed by InternalAdapter and AsaasAdapter",
+                    "then": "Both return PixChargeResult with the same structure: transaction_id, provider_id, qr_code, qr_code_text, expiration, status"
+                  },
+                  {
+                    "scenario": "Card response parity between modes",
+                    "given": "A card charge is created with identical payload",
+                    "when": "The same request is processed by InternalAdapter and AsaasAdapter",
+                    "then": "Both return CardChargeResult with the same structure: transaction_id, provider_id, status, card_token, card_last4, card_brand"
+                  }
+                ],
+                "business_rules": ["RN-03"],
+                "effort_points": "L"
+              }
+            ]
+          },
+          {
+            "id": "FT-03",
+            "epic_id": "EP-01",
+            "title": "Autenticação e Registro de Apps Consumidores",
+            "benefit_hypothesis": "Each ecosystem app authenticates with its own service API key, enabling per-app tracking, rate limiting, and access control",
+            "acceptance_criteria": [
+              "Apps authenticate via X-API-Key header matched against app_registrations table",
+              "Each app has a unique service API key auto-generated on registration",
+              "X-Source-App header is validated against the registered app name",
+              "Rate limiting enforced at 100 transactions/minute per app",
+              "Admin can register, update, and deactivate apps via admin panel"
+            ],
+            "stories": [
+              {
+                "id": "US-08",
+                "feature_id": "FT-03",
+                "title": "Como Platform Owner, quero registrar um novo app no ecossistema via painel admin, para que ele possa consumir a API de pagamentos",
+                "acceptance_criteria": [
+                  {
+                    "scenario": "Register new app successfully",
+                    "given": "Admin user is logged in with 'admin' role",
+                    "when": "POST /admin/apps with app_name='ecp-food' and callback_base_url='http://localhost:3336/callbacks'",
+                    "then": "Returns 201 with app_id, app_name, auto-generated api_key, callback_base_url, and is_active=true"
+                  },
+                  {
+                    "scenario": "Duplicate app name rejected",
+                    "given": "An app with name 'ecp-bank' already exists",
+                    "when": "POST /admin/apps with app_name='ecp-bank'",
+                    "then": "Returns 409 with error code APP_ALREADY_EXISTS"
+                  }
+                ],
+                "business_rules": ["RN-14", "RN-12"],
+                "effort_points": "S"
+              },
+              {
+                "id": "US-09",
+                "feature_id": "FT-03",
+                "title": "Como Developer ECP, quero que meu app seja autenticado via API key com rate limiting, para garantir segurança e proteção contra abuso",
+                "acceptance_criteria": [
+                  {
+                    "scenario": "Valid API key grants access",
+                    "given": "An app registered with api_key 'ecp-bank-dev-key'",
+                    "when": "Request to /pay/pix with header X-API-Key='ecp-bank-dev-key'",
+                    "then": "Request is authenticated and X-Source-App is set to 'ecp-bank'"
+                  },
+                  {
+                    "scenario": "Rate limit exceeded",
+                    "given": "App 'ecp-bank' has made 100 requests in the last minute",
+                    "when": "101st request arrives from 'ecp-bank' within the same minute",
+                    "then": "Returns 429 with error code RATE_LIMIT_EXCEEDED and Retry-After header"
+                  },
+                  {
+                    "scenario": "Invalid API key rejected",
+                    "given": "No app registered with api_key 'invalid-key'",
+                    "when": "Request to /pay/pix with header X-API-Key='invalid-key'",
+                    "then": "Returns 401 with error code UNAUTHORIZED"
+                  }
+                ],
+                "business_rules": ["RN-13", "RN-14"],
+                "effort_points": "M"
+              }
+            ]
+          },
+          {
+            "id": "FT-04",
+            "epic_id": "EP-01",
+            "title": "Cofre de Tokens (Card Vault) Cross-App",
+            "benefit_hypothesis": "Customers save their card once in any ecosystem app and reuse it across all apps, improving conversion and reducing friction",
+            "acceptance_criteria": [
+              "Card tokenization saves token + last4 + brand + holder_name (never full number or CVV)",
+              "Tokens are linked to customer_document (CPF/CNPJ) and reusable cross-app",
+              "GET /pay/cards/:customer_document returns all active tokens for that customer",
+              "DELETE /pay/cards/tokens/:token_id soft-deletes the token",
+              "Admin panel shows token statistics by brand and source app"
+            ],
+            "stories": [
+              {
+                "id": "US-10",
+                "feature_id": "FT-04",
+                "title": "Como Developer ECP, quero tokenizar o cartão do cliente durante a cobrança, para reutilizá-lo em futuras compras sem pedir dados novamente",
+                "acceptance_criteria": [
+                  {
+                    "scenario": "Card tokenized on first charge with save_card=true",
+                    "given": "A card charge with save_card=true for customer CPF '123.456.789-00'",
+                    "when": "POST /pay/card with full card data and save_card=true",
+                    "then": "Returns card_token in the response and persists token, last4, brand, holder_name in card_tokens table (never the full number or CVV)"
+                  },
+                  {
+                    "scenario": "List saved cards for a customer",
+                    "given": "Customer '123.456.789-00' has 2 active tokens (Visa ending 4242, Mastercard ending 5555)",
+                    "when": "GET /pay/cards/123.456.789-00",
+                    "then": "Returns array with 2 tokens showing last4, brand, holder_name for each (no sensitive data)"
+                  }
+                ],
+                "business_rules": ["RN-08", "RN-16", "RN-11"],
+                "effort_points": "M"
+              }
+            ]
+          },
+          {
+            "id": "FT-05",
+            "epic_id": "EP-01",
+            "title": "Split de Pagamento por Transação",
+            "benefit_hypothesis": "Platform can automatically distribute payment proceeds between platform, seller, and delivery, enabling marketplace-style transactions",
+            "acceptance_criteria": [
+              "Split rules can be defined per transaction at creation time",
+              "Sum of all split parts must equal the total transaction amount",
+              "Split records are persisted in splits table linked to transaction_id",
+              "Admin panel shows split distribution per transaction and aggregated reports"
+            ],
+            "stories": [
+              {
+                "id": "US-11",
+                "feature_id": "FT-05",
+                "title": "Como Developer ECP, quero definir regras de split ao criar uma transação, para distribuir automaticamente o valor entre as partes envolvidas",
+                "acceptance_criteria": [
+                  {
+                    "scenario": "Create Pix charge with split",
+                    "given": "An authenticated ecp-food app creating a Pix charge of R$100,00 (10000 centavos)",
+                    "when": "POST /pay/pix with splits: [{account_id: 'seller-01', amount: 8000, type: 'fixed'}, {account_id: 'platform', amount: 1000, type: 'fixed'}, {account_id: 'delivery', amount: 1000, type: 'fixed'}]",
+                    "then": "Returns 201 with transaction and 3 split records totaling 10000 centavos"
+                  },
+                  {
+                    "scenario": "Split validation fails when sum does not match total",
+                    "given": "A charge of 10000 centavos",
+                    "when": "POST /pay/pix with splits totaling 9000 centavos",
+                    "then": "Returns 422 with error code SPLIT_SUM_MISMATCH"
+                  }
+                ],
+                "business_rules": ["RN-09", "RN-02"],
+                "effort_points": "M"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "EP-02",
+        "title": "Velocidade de Desenvolvimento do Ecossistema",
+        "hypothesis": "We believe that providing an internal simulation mode, deterministic testing, and unified documentation will result in developers integrating payments in hours instead of weeks, without any dependency on external services",
+        "opportunities": ["OPP-10", "OPP-12", "OPP-02"],
+        "krs_impacted": ["KR-04", "KR-01"],
+        "features": [
+          {
+            "id": "FT-06",
+            "epic_id": "EP-02",
+            "title": "Modo Internal — Simulação Completa de Pagamentos",
+            "benefit_hypothesis": "Developers and QA can run the entire payment ecosystem locally with zero external dependencies, testing all scenarios deterministically in milliseconds",
+            "acceptance_criteria": [
+              "InternalAdapter simulates Pix with configurable auto-approve delay (0-60s, default 5s)",
+              "InternalAdapter simulates Card: approved if amount < R$10.000 and last4 != 9999; rejected otherwise",
+              "InternalAdapter simulates Boleto with mock barcode, payable via admin panel button",
+              "Internal mode generates callbacks identical to Asaas mode",
+              "All internal operations complete with latency < 100ms (excluding configured delay)"
+            ],
+            "stories": [
+              {
+                "id": "US-12",
+                "feature_id": "FT-06",
+                "title": "Como Developer ECP, quero que cobranças Pix sejam aprovadas automaticamente no modo internal, para testar fluxos completos sem sandbox externo",
+                "acceptance_criteria": [
+                  {
+                    "scenario": "Pix auto-approved after configurable delay",
+                    "given": "PAYMENT_PROVIDER=internal and INTERNAL_SIMULATION_DELAY=5000",
+                    "when": "POST /pay/pix with valid payload",
+                    "then": "Transaction created with status 'pending', auto-transitions to 'completed' after 5 seconds, and callback is sent to the app's callback_url"
+                  },
+                  {
+                    "scenario": "Pix instant approval with zero delay",
+                    "given": "PAYMENT_PROVIDER=internal and INTERNAL_SIMULATION_DELAY=0",
+                    "when": "POST /pay/pix with valid payload",
+                    "then": "Transaction immediately transitions to 'completed' and callback is sent"
+                  }
+                ],
+                "business_rules": ["RN-04", "RN-03", "RN-18"],
+                "effort_points": "M"
+              },
+              {
+                "id": "US-13",
+                "feature_id": "FT-06",
+                "title": "Como Developer ECP, quero que cobranças de cartão tenham regras determinísticas no modo internal, para testar cenários de aprovação e rejeição de forma previsível",
+                "acceptance_criteria": [
+                  {
+                    "scenario": "Card approved under R$10.000 threshold",
+                    "given": "PAYMENT_PROVIDER=internal",
+                    "when": "POST /pay/card with amount=5000 and card_number ending in 4242",
+                    "then": "Returns status 'completed' immediately"
+                  },
+                  {
+                    "scenario": "Card declined with magic number 9999",
+                    "given": "PAYMENT_PROVIDER=internal",
+                    "when": "POST /pay/card with card_number ending in 9999",
+                    "then": "Returns status 'failed' with decline_reason 'CARD_DECLINED'"
+                  },
+                  {
+                    "scenario": "Card declined for exceeding limit",
+                    "given": "PAYMENT_PROVIDER=internal",
+                    "when": "POST /pay/card with amount=1500000 (R$15.000)",
+                    "then": "Returns status 'failed' with decline_reason 'LIMIT_EXCEEDED'"
+                  }
+                ],
+                "business_rules": ["RN-05", "RN-06", "RN-03"],
+                "effort_points": "M"
+              },
+              {
+                "id": "US-14",
+                "feature_id": "FT-06",
+                "title": "Como Developer ECP, quero emitir boletos com código mock no modo internal, para testar o fluxo completo sem integração com banco",
+                "acceptance_criteria": [
+                  {
+                    "scenario": "Boleto issued with mock barcode",
+                    "given": "PAYMENT_PROVIDER=internal",
+                    "when": "POST /pay/boleto with valid payload",
+                    "then": "Returns status 'pending' with mock barcode in FEBRABAN format and mock Pix QR code"
+                  },
+                  {
+                    "scenario": "Boleto payment simulated via admin panel",
+                    "given": "A pending boleto transaction in internal mode",
+                    "when": "Operator clicks 'Simular pagamento' in the admin panel",
+                    "then": "Boleto status changes to 'completed' and callback is sent to the originating app"
+                  }
+                ],
+                "business_rules": ["RN-07", "RN-03"],
+                "effort_points": "M"
+              }
+            ]
+          },
+          {
+            "id": "FT-07",
+            "epic_id": "EP-02",
+            "title": "Ambiente de Staging Determinístico",
+            "benefit_hypothesis": "QA and release managers can validate all payment flows in a 100% controlled staging environment with predictable behavior, increasing release confidence",
+            "acceptance_criteria": [
+              "Staging environment runs with PAYMENT_PROVIDER=internal by default",
+              "All simulation parameters are configurable via admin panel Settings page",
+              "Feature flags (auto-approve delay, max simulated amount, etc.) are editable at runtime without restart",
+              "Internal mode banner is displayed on all admin panel pages when active"
+            ],
+            "stories": [
+              {
+                "id": "US-15",
+                "feature_id": "FT-07",
+                "title": "Como Financial Operator, quero configurar parâmetros de simulação via painel admin, para controlar o comportamento do modo internal sem editar variáveis de ambiente",
+                "acceptance_criteria": [
+                  {
+                    "scenario": "Change simulation delay via admin panel",
+                    "given": "Admin user on Settings page with PAYMENT_PROVIDER=internal",
+                    "when": "Operator adjusts the simulation delay slider to 10 seconds and saves",
+                    "then": "INTERNAL_SIMULATION_DELAY is updated to 10000ms, new Pix transactions auto-approve after 10s, change is recorded in audit log"
+                  },
+                  {
+                    "scenario": "Toggle feature flag at runtime",
+                    "given": "Admin user on Settings page",
+                    "when": "PATCH /admin/feature-flags/INTERNAL_AUTO_APPROVE_CARDS with value='false'",
+                    "then": "Card transactions in internal mode require manual approval via admin panel, no service restart needed"
+                  }
+                ],
+                "business_rules": ["RN-03", "RN-12", "RN-15"],
+                "effort_points": "S"
+              },
+              {
+                "id": "US-16",
+                "feature_id": "FT-07",
+                "title": "Como Financial Operator, quero ver um banner visual claro quando o modo internal está ativo, para nunca confundir transações simuladas com reais",
+                "acceptance_criteria": [
+                  {
+                    "scenario": "Internal mode banner displayed",
+                    "given": "PAYMENT_PROVIDER=internal is active",
+                    "when": "Operator navigates to any page in the admin panel",
+                    "then": "A yellow banner 'MODO INTERNAL — transações simuladas' is displayed at the top of every page"
+                  },
+                  {
+                    "scenario": "Banner hidden in external mode",
+                    "given": "PAYMENT_PROVIDER=external is active",
+                    "when": "Operator navigates to any page in the admin panel",
+                    "then": "No internal mode banner is visible"
+                  }
+                ],
+                "business_rules": ["RN-03"],
+                "effort_points": "S"
+              }
+            ]
+          },
+          {
+            "id": "FT-08",
+            "epic_id": "EP-02",
+            "title": "Gestão de Apps e Onboarding de Desenvolvedores",
+            "benefit_hypothesis": "New developers can self-serve: register their app, get an API key, and test payments in internal mode within minutes, without needing admin intervention or external credentials",
+            "acceptance_criteria": [
+              "Apps page shows all registered apps with masked API keys, callback URLs, and transaction volume",
+              "Register new app modal auto-generates API key on creation",
+              "Transaction detail shows request/response JSON payloads for learning",
+              "Admin can deactivate an app (soft disable) without deleting it"
+            ],
+            "stories": [
+              {
+                "id": "US-17",
+                "feature_id": "FT-08",
+                "title": "Como Financial Operator, quero visualizar todos os apps registrados no painel admin, para monitorar quem está consumindo a API e com qual volume",
+                "acceptance_criteria": [
+                  {
+                    "scenario": "Apps list displayed with key metrics",
+                    "given": "3 apps registered (ecp-bank, ecp-emps, ecp-food)",
+                    "when": "Operator navigates to the Apps page",
+                    "then": "Shows cards for each app with name, masked API key (first 8 chars + ****), callback_base_url, is_active status, and transaction count"
+                  },
+                  {
+                    "scenario": "Deactivate an app",
+                    "given": "App 'ecp-food' is active",
+                    "when": "Admin clicks deactivate on 'ecp-food'",
+                    "then": "App is_active becomes false, API requests with ecp-food's key return 403, audit log records the action"
+                  }
+                ],
+                "business_rules": ["RN-14", "RN-11", "RN-12"],
+                "effort_points": "S"
+              },
+              {
+                "id": "US-18",
+                "feature_id": "FT-08",
+                "title": "Como Developer ECP, quero ver os payloads de request/response de transações existentes no painel, para aprender o formato da API por exemplos reais",
+                "acceptance_criteria": [
+                  {
+                    "scenario": "View request/response payloads in transaction detail",
+                    "given": "A completed Pix transaction 'tx-123' exists",
+                    "when": "Operator opens transaction detail page for 'tx-123'",
+                    "then": "Shows CodeBlock components with syntax-highlighted JSON for the original request payload and the provider response payload"
+                  }
+                ],
+                "business_rules": ["RN-16"],
+                "effort_points": "S"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "EP-03",
+        "title": "Confiabilidade e Operação em Produção",
+        "hypothesis": "We believe that building idempotency, guaranteed webhook delivery with retry, and full transaction observability will result in a production-grade payment service trusted with real money from day one",
+        "opportunities": ["OPP-14", "OPP-13", "OPP-06"],
+        "krs_impacted": ["KR-05", "KR-02"],
+        "features": [
+          {
+            "id": "FT-09",
+            "epic_id": "EP-03",
+            "title": "Idempotência e Deduplicação de Transações",
+            "benefit_hypothesis": "Retry scenarios never cause duplicate charges, giving apps and operators confidence that financial operations are safe to retry",
+            "acceptance_criteria": [
+              "Every mutation endpoint requires X-Idempotency-Key (UUID v4)",
+              "Duplicate idempotency_key returns the existing result with 200 (not a new transaction)",
+              "Idempotency key is stored as UNIQUE constraint on transactions table",
+              "Dedup events are recorded in audit log for operational visibility",
+              "Admin panel shows idempotency_key in transaction detail"
+            ],
+            "stories": [
+              {
+                "id": "US-19",
+                "feature_id": "FT-09",
+                "title": "Como Developer ECP, quero que retries com a mesma idempotency_key retornem o resultado original, para garantir que falhas de rede nunca causem cobranças duplicadas",
+                "acceptance_criteria": [
+                  {
+                    "scenario": "First request creates transaction",
+                    "given": "No transaction exists with idempotency_key 'key-abc'",
+                    "when": "POST /pay/pix with X-Idempotency-Key='key-abc'",
+                    "then": "Returns 201 with new transaction"
+                  },
+                  {
+                    "scenario": "Retry returns existing result",
+                    "given": "Transaction with idempotency_key 'key-abc' already exists and is 'completed'",
+                    "when": "POST /pay/pix with same X-Idempotency-Key='key-abc' and same payload",
+                    "then": "Returns 200 with the existing transaction result (no new transaction created)"
+                  },
+                  {
+                    "scenario": "Missing idempotency key rejected",
+                    "given": "Any mutation endpoint (POST /pay/pix, POST /pay/card, POST /pay/boleto)",
+                    "when": "Request is sent without X-Idempotency-Key header",
+                    "then": "Returns 400 with error code IDEMPOTENCY_KEY_REQUIRED"
+                  }
+                ],
+                "business_rules": ["RN-01"],
+                "effort_points": "M"
+              },
+              {
+                "id": "US-20",
+                "feature_id": "FT-09",
+                "title": "Como Financial Operator, quero ver a idempotency_key e eventos de deduplicação no detalhe da transação, para investigar cenários de retry dos apps consumidores",
+                "acceptance_criteria": [
+                  {
+                    "scenario": "Idempotency key visible in transaction detail",
+                    "given": "Transaction 'tx-123' with idempotency_key 'key-abc'",
+                    "when": "Operator opens transaction detail for 'tx-123'",
+                    "then": "Shows idempotency_key 'key-abc' in monospace font in the header section"
+                  },
+                  {
+                    "scenario": "Dedup event in transaction timeline",
+                    "given": "A duplicate request was received for 'tx-123' at 14:30:05",
+                    "when": "Operator views the TransactionTimeline for 'tx-123'",
+                    "then": "Timeline shows a 'Duplicate request received — returned existing result' event at 14:30:05 with source app info"
+                  }
+                ],
+                "business_rules": ["RN-01", "RN-12"],
+                "effort_points": "S"
+              }
+            ]
+          },
+          {
+            "id": "FT-10",
+            "epic_id": "EP-03",
+            "title": "Webhook Delivery com Retry e Backoff Exponencial",
+            "benefit_hypothesis": "Apps are always notified of payment status changes, even during transient failures, ensuring eventual consistency between ECP Pay and consuming apps",
+            "acceptance_criteria": [
+              "Callbacks sent to app's callback_url on every transaction status change",
+              "Failed deliveries retried 3 times with exponential backoff (30s, 2min, 10min)",
+              "After 3 failed attempts, status becomes 'delivery_failed'",
+              "Webhook events table provides idempotent processing (event_id dedup)",
+              "Admin panel shows delivery status, attempt count, and allows manual retry"
+            ],
+            "stories": [
+              {
+                "id": "US-21",
+                "feature_id": "FT-10",
+                "title": "Como Developer ECP, quero receber callbacks automáticos quando o status de uma transação mudar, para atualizar o estado no meu app sem polling",
+                "acceptance_criteria": [
+                  {
+                    "scenario": "Callback sent on Pix completion",
+                    "given": "A pending Pix transaction from 'ecp-food' with callback_url 'http://localhost:3336/callbacks'",
+                    "when": "Transaction status changes to 'completed'",
+                    "then": "HTTP POST to callback_url with payload containing event='payment.completed', transaction_id, type='pix', amount, status='completed', source_app='ecp-food', timestamp"
+                  },
+                  {
+                    "scenario": "Callback per-transaction URL overrides app default",
+                    "given": "App ecp-food has default callback_base_url, but transaction was created with callback_url='http://localhost:3336/special-callback'",
+                    "when": "Transaction status changes",
+                    "then": "Callback is sent to 'http://localhost:3336/special-callback' (transaction-level URL takes precedence)"
+                  }
+                ],
+                "business_rules": ["RN-18", "RN-10"],
+                "effort_points": "M"
+              },
+              {
+                "id": "US-22",
+                "feature_id": "FT-10",
+                "title": "Como Developer ECP, quero que callbacks falhos sejam reenviados automaticamente com backoff exponencial, para que indisponibilidade temporária do meu app não cause perda de eventos",
+                "acceptance_criteria": [
+                  {
+                    "scenario": "First retry after 30 seconds",
+                    "given": "Callback to 'ecp-food' failed (HTTP 500 or timeout) at attempt 1",
+                    "when": "30 seconds have elapsed",
+                    "then": "System retries the callback (attempt 2 of 3)"
+                  },
+                  {
+                    "scenario": "Second retry after 2 minutes",
+                    "given": "Callback attempt 2 also failed",
+                    "when": "2 minutes have elapsed since attempt 2",
+                    "then": "System retries the callback (attempt 3 of 3)"
+                  },
+                  {
+                    "scenario": "Final failure after all retries exhausted",
+                    "given": "All 3 callback attempts failed",
+                    "when": "Third attempt fails",
+                    "then": "callback_status becomes 'delivery_failed', no more automatic retries"
+                  }
+                ],
+                "business_rules": ["RN-10"],
+                "effort_points": "M"
+              },
+              {
+                "id": "US-23",
+                "feature_id": "FT-10",
+                "title": "Como Financial Operator, quero gerenciar webhooks recebidos e enviados no painel admin com opção de retry manual, para garantir que nenhum app fique sem notificação",
+                "acceptance_criteria": [
+                  {
+                    "scenario": "View webhooks in received/sent tabs",
+                    "given": "10 webhooks received from Asaas and 15 callbacks sent to apps",
+                    "when": "Operator navigates to Webhooks page",
+                    "then": "Shows two tabs: 'Recebidos' with 10 events (event_id, type, transaction link, processed status) and 'Enviados' with 15 callbacks (destination app, delivery status badge, attempt count)"
+                  },
+                  {
+                    "scenario": "Manual retry of failed callback",
+                    "given": "A callback to ecp-food has status 'delivery_failed' (3/3 attempts exhausted)",
+                    "when": "Operator clicks 'Retry' button on the failed callback row",
+                    "then": "POST /admin/webhooks/:id/retry triggers a new delivery attempt, status changes to 'retrying', audit log records the manual action"
+                  },
+                  {
+                    "scenario": "Inspect webhook payload",
+                    "given": "A webhook event in the list",
+                    "when": "Operator clicks to expand/drill-down into the event",
+                    "then": "Shows full JSON payload in CodeBlock component with syntax highlighting and copy button"
+                  }
+                ],
+                "business_rules": ["RN-10", "RN-12", "RN-19"],
+                "effort_points": "M"
+              }
+            ]
+          },
+          {
+            "id": "FT-11",
+            "epic_id": "EP-03",
+            "title": "Observabilidade de Transações — Timeline e Dashboard",
+            "benefit_hypothesis": "Operators can investigate any transaction from creation to completion in one view, reducing incident resolution time from hours to minutes",
+            "acceptance_criteria": [
+              "Transaction detail shows TransactionTimeline with all lifecycle events",
+              "Each timeline event has timestamp, elapsed time from previous, and semantic color",
+              "Timeline nodes are expandable to show request/response payloads",
+              "Dashboard shows 6 KPI cards: volume, transaction count, success rate, revenue/hour, active tokens, pending webhooks",
+              "Dashboard includes volume chart by app, type distribution donut, and success rate bar chart"
+            ],
+            "stories": [
+              {
+                "id": "US-24",
+                "feature_id": "FT-11",
+                "title": "Como Financial Operator, quero ver a timeline completa de uma transação no detalhe, para investigar exatamente onde uma falha ocorreu",
+                "acceptance_criteria": [
+                  {
+                    "scenario": "Complete transaction timeline for successful Pix",
+                    "given": "A completed Pix transaction 'tx-123' with full lifecycle",
+                    "when": "Operator opens transaction detail for 'tx-123'",
+                    "then": "TransactionTimeline shows chronological events: created → sent_to_provider → provider_response → webhook_received → callback_sent → callback_delivered → completed, each with timestamp and elapsed time"
+                  },
+                  {
+                    "scenario": "Failed transaction timeline shows error point",
+                    "given": "A failed card transaction 'tx-456' that was declined by provider",
+                    "when": "Operator opens transaction detail for 'tx-456'",
+                    "then": "Timeline shows events up to provider_response with a red 'failed' node containing the decline reason, and no subsequent callback events"
+                  },
+                  {
+                    "scenario": "Expand timeline node to see payload",
+                    "given": "Transaction timeline is displayed with expandable nodes",
+                    "when": "Operator clicks on the 'provider_response' event node",
+                    "then": "Node expands to show the full provider response payload in a CodeBlock with syntax highlighting"
+                  }
+                ],
+                "business_rules": ["RN-12"],
+                "effort_points": "M"
+              },
+              {
+                "id": "US-25",
+                "feature_id": "FT-11",
+                "title": "Como Financial Operator, quero ver um dashboard com KPIs e gráficos das transações do ecossistema, para monitorar a saúde do sistema em tempo real",
+                "acceptance_criteria": [
+                  {
+                    "scenario": "Dashboard displays 6 KPI cards",
+                    "given": "Transactions exist in the system across multiple apps and types",
+                    "when": "Operator navigates to the Dashboard page",
+                    "then": "Shows 6 KPI cards: total volume (R$), transaction count, success rate (%), revenue/hour, active card tokens, pending webhooks — each with period comparison and trend arrow"
+                  },
+                  {
+                    "scenario": "Dashboard charts show distribution",
+                    "given": "Transactions exist from ecp-bank, ecp-emps, and ecp-food with Pix, Card, and Boleto types",
+                    "when": "Operator views the Dashboard",
+                    "then": "Shows volume line chart with per-app breakdown, donut chart by payment type (Pix/Card/Boleto), and success rate bar chart by app"
+                  }
+                ],
+                "business_rules": ["RN-02"],
+                "effort_points": "L"
+              },
+              {
+                "id": "US-26",
+                "feature_id": "FT-11",
+                "title": "Como Financial Operator, quero filtrar e buscar transações com múltiplos critérios, para encontrar rapidamente qualquer transação específica",
+                "acceptance_criteria": [
+                  {
+                    "scenario": "Filter transactions by multiple criteria",
+                    "given": "Transactions exist from multiple apps, types, and statuses",
+                    "when": "Operator applies filters: type=pix, status=completed, source_app=ecp-food, date range=last 7 days",
+                    "then": "Table shows only Pix transactions from ecp-food that completed in the last 7 days, with sortable columns and pagination"
+                  },
+                  {
+                    "scenario": "Search by customer document or transaction ID",
+                    "given": "Transaction 'tx-123' for customer CPF '123.456.789-00' exists",
+                    "when": "Operator types '123.456.789-00' in the search field",
+                    "then": "Table filters to show all transactions for that customer document"
+                  }
+                ],
+                "business_rules": ["RN-11"],
+                "effort_points": "M"
+              }
+            ]
+          },
+          {
+            "id": "FT-12",
+            "epic_id": "EP-03",
+            "title": "Auditoria e Logging Estruturado",
+            "benefit_hypothesis": "Every action is traceable and auditable, meeting compliance requirements and enabling forensic investigation of any event in the system",
+            "acceptance_criteria": [
+              "All admin actions are recorded in audit_logs with user_id, action, resource, timestamp, IP",
+              "All API calls are logged with request/response summary",
+              "Configuration changes (feature flags, provider switch, app registration) are audited",
+              "Admin panel provides searchable audit log page with filters",
+              "Soft delete policy: no record is physically deleted"
+            ],
+            "stories": [
+              {
+                "id": "US-27",
+                "feature_id": "FT-12",
+                "title": "Como Platform Owner, quero que toda ação administrativa seja registrada em log de auditoria, para rastrear quem fez o quê e quando no sistema",
+                "acceptance_criteria": [
+                  {
+                    "scenario": "Provider switch audit log",
+                    "given": "Admin 'Edson' switches provider from internal to external",
+                    "when": "POST /admin/providers/switch is executed",
+                    "then": "Audit log entry created with user_id='edson-id', action='SWITCH_PROVIDER', resource='provider', metadata={from: 'internal', to: 'external'}, ip_address, timestamp"
+                  },
+                  {
+                    "scenario": "View audit logs in admin panel",
+                    "given": "Multiple audit log entries exist",
+                    "when": "Operator navigates to Audit Log page with filter action='SWITCH_PROVIDER'",
+                    "then": "Shows filtered list of provider switch events with who, when, and details"
+                  }
+                ],
+                "business_rules": ["RN-12", "RN-11", "RN-15"],
+                "effort_points": "M"
+              },
+              {
+                "id": "US-28",
+                "feature_id": "FT-12",
+                "title": "Como Financial Operator, quero executar ações operacionais (reprocessar, estornar, cancelar) diretamente no detalhe da transação, para resolver problemas sem intervenção de engenharia",
+                "acceptance_criteria": [
+                  {
+                    "scenario": "Refund from transaction detail page",
+                    "given": "A completed card transaction 'tx-123' with amount 5000",
+                    "when": "Operator clicks 'Estornar' button and confirms the full refund",
+                    "then": "Refund is processed, transaction status changes to 'refunded', callback is sent to originating app, audit log records the action with operator's user_id"
+                  },
+                  {
+                    "scenario": "Cancel pending boleto from detail page",
+                    "given": "A pending boleto transaction 'tx-456'",
+                    "when": "Operator clicks 'Cancelar' button and confirms",
+                    "then": "Boleto status changes to 'cancelled', callback sent to originating app, audit log records the action"
+                  }
+                ],
+                "business_rules": ["RN-17", "RN-12", "RN-11"],
+                "effort_points": "M"
+              }
+            ]
+          },
+          {
+            "id": "FT-13",
+            "epic_id": "EP-03",
+            "title": "Autenticação e RBAC do Painel Admin",
+            "benefit_hypothesis": "Admin panel access is secure with role-based permissions, ensuring operators can only perform actions appropriate to their role level",
+            "acceptance_criteria": [
+              "Login via email/password with JWT token",
+              "Three roles: admin (full access), operator (transactions + webhooks), viewer (read-only)",
+              "Protected routes validate JWT and check role permissions",
+              "Session expiry and invalid token handling"
+            ],
+            "stories": [
+              {
+                "id": "US-29",
+                "feature_id": "FT-13",
+                "title": "Como Financial Operator, quero fazer login no painel admin com email e senha, para acessar as ferramentas de monitoramento com segurança",
+                "acceptance_criteria": [
+                  {
+                    "scenario": "Successful login",
+                    "given": "Admin user 'admin@ecpay.dev' with password 'Admin@123' exists",
+                    "when": "POST /admin/auth/login with email='admin@ecpay.dev' and password='Admin@123'",
+                    "then": "Returns JWT token with user data (id, name, email, role), token valid for configured expiry"
+                  },
+                  {
+                    "scenario": "Invalid credentials rejected",
+                    "given": "User 'admin@ecpay.dev' exists",
+                    "when": "POST /admin/auth/login with wrong password",
+                    "then": "Returns 401 with error code INVALID_CREDENTIALS"
+                  },
+                  {
+                    "scenario": "Role-based access control",
+                    "given": "User logged in with role 'viewer'",
+                    "when": "Attempting POST /admin/providers/switch (admin-only action)",
+                    "then": "Returns 403 with error code INSUFFICIENT_PERMISSIONS"
+                  }
+                ],
+                "business_rules": ["RN-15", "RN-12"],
+                "effort_points": "M"
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "summary": {
+      "epics": 3,
+      "features": 13,
+      "stories": 29
+    },
+    "four_risks": {
+      "customer_value": {
+        "verdict": "approved",
+        "evidence": "Low-fi validated through Opportunity Solution Tree with 15 opportunities mapped to 5 KRs. High-fi validated through 7 solution hypotheses (HYP-01 to HYP-07) with 26 critical assumptions mapped to prototype screens. The 3 personas (Developer ECP, Financial Operator, Platform Owner) are clearly defined with distinct needs. The 9 prioritized opportunities were selected via WSJF scoring with explicit rationale, covering the complete user journey from API integration to production operations.",
+        "residual_risks": [
+          "OQ-03: Split functionality scope depends on whether it is used beyond ecp-food — currently scoped as MVP feature but may need expansion",
+          "Developer persona needs are validated through architectural analysis and ecosystem patterns, not direct user interviews (acceptable given internal-only user base)"
+        ]
+      },
+      "business_value": {
+        "verdict": "approved",
+        "kr_impact": [
+          "KR-01: EP-01 (FT-01 unified API + FT-03 app registration) + EP-02 (FT-06 internal mode + FT-08 developer onboarding) directly reduce integration time from weeks to hours",
+          "KR-02: EP-01 (FT-01 all transactions through ECP Pay) + EP-03 (FT-11 dashboard + FT-12 audit) centralize 100% of transactions in a single observable ledger",
+          "KR-03: EP-01 (FT-02 provider pattern) enables zero-code gateway swaps — verified by contract parity requirement in US-07",
+          "KR-04: EP-02 (FT-06 internal mode + FT-07 deterministic staging) enables 100% of payment scenarios testable offline with latency < 100ms",
+          "KR-05: EP-03 (FT-09 idempotency + FT-10 webhook retry + FT-11 observability) targets 99.9% API uptime and >99% webhook first-attempt delivery"
+        ],
+        "residual_risks": [
+          "AS-03: SQLite scalability — the backlog assumes hundreds of thousands of transactions, not millions per day. If volume exceeds expectations, database migration will be needed",
+          "OQ-01: Volume targets for KR-05 availability are set without baseline data — the 99.9% target may be over-engineering for initial volumes"
+        ]
+      },
+      "usability": {
+        "verdict": "approved",
+        "evidence": "Prototype plan covers 8 screens, 7 flows, and 8 key interactions validated against HYP-01 through HYP-07. Design follows density-first pattern (Stripe/Datadog inspiration per PP-05). Norman's principles applied: visibility of system status (provider indicator, internal mode banner, transaction status badges), feedback (confirmation modals, simulation buttons), constraints (destructive actions require confirmation). Critical screen prioritization: Transaction Detail (convergence point for 4/7 hypotheses), Dashboard (entry point), Providers (highest-risk interaction).",
+        "friction_points": [
+          "CA-09: Developers may prefer env vars over admin panel for Internal Mode controls — mitigated by supporting both mechanisms",
+          "CA-19: Two-tab webhook design (Received/Sent) needs validation that operators naturally think in this mental model vs. a unified timeline view",
+          "Admin panel is an operational tool for internal users (PP-05), not a consumer-facing product — usability bar is functional correctness over polish"
+        ]
+      },
+      "technical_feasibility": {
+        "verdict": "approved",
+        "framework_compatible": true,
+        "evidence": "Stack (TypeScript + Fastify 5.0 + SQLite3 + React 18.3 + Vite 5.4) is identical to the existing ECP ecosystem, ensuring team familiarity and code reuse. Provider Pattern is a well-documented design pattern with clear interface contract (PaymentProvider interface defined in tech_spec §3.1). Database schema (10 tables, 15 indices) is straightforward relational design compatible with SQLite. Internal mode simulation is self-contained with no external dependencies. Webhook retry with exponential backoff is a standard pattern. RBAC with JWT is already proven in ecp-digital-bank. Total scope: 29 API endpoints (9 payment + 20 admin), 8 SPA routes, 13 features — achievable within the defined architecture.",
+        "risks": [
+          "AS-03: SQLite write contention under concurrent payment processing — mitigated by better-sqlite3 synchronous driver and WAL mode",
+          "Asaas API mapping complexity: the AsaasAdapter must correctly map between Asaas-specific payloads and the unified contract — requires thorough integration testing with Asaas sandbox",
+          "Webhook delivery reliability depends on the consuming app's availability — the 3-retry with backoff is standard but 'delivery_failed' after 3 attempts means some events may require manual intervention (covered by US-23 manual retry)"
+        ]
+      }
+    }
+  },
+  "next_hitl": 6
+}
