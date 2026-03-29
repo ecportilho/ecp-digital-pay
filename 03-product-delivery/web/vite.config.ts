@@ -5,6 +5,7 @@ export default defineConfig({
   plugins: [react()],
   server: {
     port: 5176,
+    strictPort: true,
     proxy: {
       '/admin': 'http://localhost:3335',
       '/pay': 'http://localhost:3335',
