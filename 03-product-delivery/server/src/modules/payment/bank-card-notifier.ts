@@ -7,8 +7,8 @@
  */
 
 const BANK_API_URL = process.env.ECP_BANK_API_URL || 'http://localhost:3333';
-const BANK_PLATFORM_EMAIL = process.env.ECP_BANK_PLATFORM_EMAIL || 'marina@email.com';
-const BANK_PLATFORM_PASSWORD = process.env.ECP_BANK_PLATFORM_PASSWORD || 'Senha@123';
+const BANK_PLATFORM_EMAIL = process.env.ECP_BANK_PLATFORM_EMAIL || 'platform@ecpay.dev';
+const BANK_PLATFORM_PASSWORD = process.env.ECP_BANK_PLATFORM_PASSWORD || 'EcpPay@Platform#2026';
 
 let cachedToken: string | null = null;
 let tokenExpiry = 0;
