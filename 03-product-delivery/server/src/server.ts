@@ -1,3 +1,4 @@
+import 'dotenv/config';
 import { buildApp } from './app.js';
 import { getDb } from './database/connection.js';
 import { seed } from './database/seed.js';

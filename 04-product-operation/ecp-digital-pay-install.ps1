@@ -1,5 +1,6 @@
 # ============================================================================
 #  ECP Pay v1.0  -  Script de Instalacao Completo
+#  Servico Centralizado de Pagamentos do Ecossistema ECP
 #  Windows 11 | PowerShell 5.1+
 #  Executar: PowerShell -ExecutionPolicy Bypass -File .\ecp-digital-pay-install.ps1
 # ============================================================================
@@ -74,16 +75,17 @@ Write-Host ""
 
 # --- Detectar diretorio do projeto ---
 $scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
-$projectRoot = Split-Path -Parent $scriptDir
+$repoRoot = Split-Path -Parent $scriptDir
 
-# O codigo esta em 03-product-delivery/
-$DELIVERY_DIR = "$projectRoot\03-product-delivery"
+# O codigo-fonte esta em 03-product-delivery
+$DELIVERY_DIR = "$repoRoot\03-product-delivery"
 
 if (Test-Path "$DELIVERY_DIR\package.json") {
     $PROJECT_DIR = $DELIVERY_DIR
 } elseif (Test-Path ".\package.json") {
     $PROJECT_DIR = (Get-Location).Path
 } else {
+    # Tentar o caminho padrao
     $PROJECT_DIR = "C:\Users\$env:USERNAME\projetos_git\ecp-digital-pay\03-product-delivery"
 }
 
@@ -178,6 +180,7 @@ if (Test-Command "git") {
 # --- 1.5 Visual Studio Build Tools ---
 Write-Step "1.5" "Visual Studio Build Tools (compilador C++)"
 
+# Detectar versao instalada automaticamente (suporta 2022, 2026 e futuras)
 $vsInstalls = @(
     @{ Year = "2026"; InternalVer = "18"; Editions = @("BuildTools","Professional","Community","Enterprise") },
     @{ Year = "2022"; InternalVer = "2022"; Editions = @("BuildTools","Professional","Community","Enterprise") }
@@ -446,6 +449,14 @@ INTERNAL_SIMULATION_DELAY=3000
 INTERNAL_AUTO_APPROVE_CARDS=true
 INTERNAL_MAX_SIMULATED_AMOUNT=10000000
 
+# Webhooks dos apps do ecossistema
+ECP_EMPS_WEBHOOK_URL=http://localhost:3334/webhooks/pay
+ECP_BANK_API_URL=http://localhost:3333/api
+
+# Service Account (ECP Bank para split de pagamentos)
+ECP_BANK_SERVICE_EMAIL=marina@email.com
+ECP_BANK_SERVICE_PASSWORD=Senha@123
+
 # Frontend
 VITE_API_URL=http://localhost:3335
 "@
@@ -484,9 +495,9 @@ if (Test-Path $dbFile) {
     $resp = Read-Host "      Resposta"
     if ($resp -match "^[sS]") {
         Write-SubStep "Removendo banco existente..."
-        Remove-Item "$PROJECT_DIR\server\database-pay.sqlite" -ErrorAction SilentlyContinue
-        Remove-Item "$PROJECT_DIR\server\database-pay.sqlite-wal" -ErrorAction SilentlyContinue
-        Remove-Item "$PROJECT_DIR\server\database-pay.sqlite-shm" -ErrorAction SilentlyContinue
+        Remove-Item $dbFile -ErrorAction SilentlyContinue
+        Remove-Item "$dbFile-wal" -ErrorAction SilentlyContinue
+        Remove-Item "$dbFile-shm" -ErrorAction SilentlyContinue
         Write-Ok "Banco removido"
     } else {
         Write-Info "Mantendo banco existente"
@@ -531,17 +542,17 @@ if ($port5176) {
 
 # --- Iniciar servidor ---
 Write-Step "5.2" "Iniciando API Fastify (porta 3335)"
-Write-SubStep "Executando: npm run dev:server (em background)"
+Write-SubStep "Executando: npm run dev (em background  -  server + web)"
 
 Set-Location $PROJECT_DIR
-$serverJob = Start-Process -FilePath "cmd.exe" `
-    -ArgumentList "/c","npm","run","dev:server" `
+$appJob = Start-Process -FilePath "cmd.exe" `
+    -ArgumentList "/c","npm","run","dev" `
     -WorkingDirectory $PROJECT_DIR `
     -PassThru -WindowStyle Hidden `
     -RedirectStandardOutput "$PROJECT_DIR\server-stdout.log" `
     -RedirectStandardError "$PROJECT_DIR\server-stderr.log"
 
-Write-SubStep "Processo iniciado (PID: $($serverJob.Id))"
+Write-SubStep "Processo iniciado (PID: $($appJob.Id))"
 Write-SubStep "Aguardando API ficar pronta (migrations + seed no primeiro startup)..."
 
 $apiReady = $false
@@ -579,19 +590,8 @@ if ($apiReady) {
     Write-Info "  Get-Content server-stderr.log"
 }
 
-# --- Iniciar frontend ---
-Write-Step "5.3" "Iniciando Admin Panel Vite (porta 5176)"
-Write-SubStep "Executando: npm run dev:web (em background)"
-
-$webJob = Start-Process -FilePath "cmd.exe" `
-    -ArgumentList "/c","npm","run","dev:web" `
-    -WorkingDirectory $PROJECT_DIR `
-    -PassThru -WindowStyle Hidden `
-    -RedirectStandardOutput "$PROJECT_DIR\web-stdout.log" `
-    -RedirectStandardError "$PROJECT_DIR\web-stderr.log"
-
-Write-SubStep "Processo iniciado (PID: $($webJob.Id))"
-Write-SubStep "Aguardando admin panel ficar pronto..."
+# --- Verificar frontend ---
+Write-Step "5.3" "Aguardando Admin Panel Vite (porta 5176)"
 
 $webReady = $false
 for ($i = 1; $i -le 30; $i++) {
@@ -620,8 +620,7 @@ Write-Host ("  " + ("=" * 60)) -ForegroundColor DarkCyan
 Write-Host "  API:      $HOST_API $(if ($apiReady) { '[ ONLINE ]' } else { '[ OFFLINE ]' })" -ForegroundColor $(if ($apiReady) { 'Green' } else { 'Red' })
 Write-Host "  Admin:    $HOST_WEB $(if ($webReady) { '[ ONLINE ]' } else { '[ AGUARDANDO ]' })" -ForegroundColor $(if ($webReady) { 'Green' } else { 'Yellow' })
 Write-Host "  Provider: INTERNAL (simulacao)" -ForegroundColor Cyan
-Write-Host "  API PID:  $($serverJob.Id)" -ForegroundColor Gray
-Write-Host "  Web PID:  $($webJob.Id)" -ForegroundColor Gray
+Write-Host "  App PID:  $($appJob.Id)" -ForegroundColor Gray
 Write-Host ("  " + ("=" * 60)) -ForegroundColor DarkCyan
 
 Pause-Step "Aplicacao iniciada  -  revise o status acima"
@@ -797,12 +796,11 @@ Write-Host "  Provider ativo: INTERNAL (simulacao local)" -ForegroundColor Cyan
 Write-Host ""
 Write-Host "  Processos em execucao:" -ForegroundColor Cyan
 Write-Host ""
-Write-Host "    API PID:   $($serverJob.Id)" -ForegroundColor Gray
-Write-Host "    Web PID:   $($webJob.Id)" -ForegroundColor Gray
+Write-Host "    App PID:   $($appJob.Id)" -ForegroundColor Gray
 Write-Host ""
 Write-Host "  Para parar:" -ForegroundColor Cyan
 Write-Host ""
-Write-Host "    Stop-Process -Id $($serverJob.Id),$($webJob.Id) -Force" -ForegroundColor Yellow
+Write-Host "    Stop-Process -Id $($appJob.Id) -Force" -ForegroundColor Yellow
 Write-Host ""
 Write-Host "  Logs:" -ForegroundColor Cyan
 Write-Host ""

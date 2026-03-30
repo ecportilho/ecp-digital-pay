@@ -25,7 +25,7 @@ export async function buildApp() {
 
   // --- Plugins ---
   await app.register(cors, {
-    origin: process.env.CORS_ORIGIN || 'http://localhost:5175',
+    origin: process.env.CORS_ORIGIN || 'http://localhost:5176',
     credentials: true,
   });
 
