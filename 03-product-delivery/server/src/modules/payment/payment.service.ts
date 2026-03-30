@@ -1,4 +1,4 @@
-import type { PixChargeBody, CardChargeBody, BoletoBody, RefundBody } from './payment.schema.js';
+import type { PixChargeBody, CardChargeBody, BoletoBody, RefundBody, CreateTransactionSplitBody } from './payment.schema.js';
 import type { PixChargeResult, CardChargeResult, BoletoResult, RefundResult, TransactionStatus } from '../../providers/payment-provider.interface.js';
 import { ProviderFactory } from '../../providers/provider.factory.js';
 import { getDb } from '../../database/connection.js';
@@ -6,6 +6,8 @@ import { generateUUID } from '../../shared/utils/uuid.js';
 import { AppError } from '../../shared/errors/app-error.js';
 import { ErrorCode } from '../../shared/errors/error-codes.js';
 import { auditLog } from '../../shared/utils/audit.js';
+import { createSplit } from '../split/split.service.js';
+import { notifyBankCardPurchase } from './bank-card-notifier.js';
 
 /**
  * Payment service — orchestrates: validate -> provider -> persist -> callback.
@@ -97,6 +99,21 @@ function finalizeCardTokenSourceApp(customerDocument: string, sourceApp: string)
   ).run(sourceApp, customerDocument);
 }
 
+/**
+ * Process inline splits if provided in the payment request body.
+ */
+async function processInlineSplits(
+  transactionId: string,
+  splits?: Array<{ account_id: string; account_name: string; amount: number; type: 'fixed' | 'percentage' }>,
+) {
+  if (!splits || splits.length === 0) return undefined;
+
+  return createSplit({
+    transaction_id: transactionId,
+    splits,
+  });
+}
+
 export async function createPixCharge(
   body: PixChargeBody,
   sourceApp: string,
@@ -128,6 +145,9 @@ export async function createPixCharge(
   // Finalize the transaction record with source_app and idempotency
   finalizeTransaction(result.transaction_id, sourceApp, idempotencyKey, callbackUrl || body.callback_url, body.metadata);
 
+  // Process inline splits if provided
+  const splits = await processInlineSplits(result.transaction_id, body.splits);
+
   auditLog({
     action: 'CREATE_PIX_CHARGE',
     resource: 'transaction',
@@ -135,7 +155,7 @@ export async function createPixCharge(
     metadata: { source_app: sourceApp, amount: body.amount, provider: provider.name },
   });
 
-  return result;
+  return splits ? { ...result, splits } : result;
 }
 
 export async function createCardCharge(
@@ -176,6 +196,9 @@ export async function createCardCharge(
   finalizeTransaction(result.transaction_id, sourceApp, idempotencyKey, callbackUrl || body.callback_url, body.metadata);
   finalizeCardTokenSourceApp(body.customer_document, sourceApp);
 
+  // Process inline splits if provided
+  const splits = await processInlineSplits(result.transaction_id, body.splits);
+
   auditLog({
     action: 'CREATE_CARD_CHARGE',
     resource: 'transaction',
@@ -183,7 +206,19 @@ export async function createCardCharge(
     metadata: { source_app: sourceApp, amount: body.amount, provider: provider.name },
   });
 
-  return result;
+  // Notify bank to register purchase on cardholder's invoice (async, non-blocking)
+  if (body.card_number && result.status === 'completed') {
+    notifyBankCardPurchase({
+      card_number: body.card_number,
+      amount: body.amount,
+      description: body.description || `Pagamento ${sourceApp}`,
+      merchant_name: sourceApp === 'ecp-food' ? 'FoodFlow Delivery' : sourceApp,
+      merchant_category: sourceApp === 'ecp-food' ? 'Alimentacao' : 'Pagamentos',
+      transaction_id: result.transaction_id,
+    }).catch(() => {}); // fire-and-forget
+  }
+
+  return splits ? { ...result, splits } : result;
 }
 
 export async function createBoleto(
@@ -225,6 +260,9 @@ export async function createBoleto(
   // Finalize the transaction record
   finalizeTransaction(result.transaction_id, sourceApp, idempotencyKey, callbackUrl || body.callback_url, body.metadata);
 
+  // Process inline splits if provided
+  const splits = await processInlineSplits(result.transaction_id, body.splits);
+
   auditLog({
     action: 'CREATE_BOLETO',
     resource: 'transaction',
@@ -232,7 +270,7 @@ export async function createBoleto(
     metadata: { source_app: sourceApp, amount: body.amount, provider: provider.name },
   });
 
-  return result;
+  return splits ? { ...result, splits } : result;
 }
 
 export async function getTransaction(transactionId: string): Promise<Record<string, unknown> | null> {
@@ -256,6 +294,38 @@ export async function getTransaction(transactionId: string): Promise<Record<stri
     splits,
     refunds,
   };
+}
+
+export async function createTransactionSplit(
+  transactionId: string,
+  body: CreateTransactionSplitBody,
+  sourceApp: string,
+) {
+  const db = getDb();
+  const tx = db.prepare('SELECT id FROM transactions WHERE id = ?').get(transactionId) as { id: string } | undefined;
+  if (!tx) {
+    throw new AppError(404, ErrorCode.TRANSACTION_NOT_FOUND, 'Transaction not found');
+  }
+
+  // Check if splits already exist for this transaction
+  const existingSplits = db.prepare('SELECT COUNT(*) as count FROM splits WHERE transaction_id = ?').get(transactionId) as { count: number };
+  if (existingSplits.count > 0) {
+    throw new AppError(409, ErrorCode.SPLIT_ALREADY_EXISTS, 'Splits already exist for this transaction');
+  }
+
+  const splits = await createSplit({
+    transaction_id: transactionId,
+    splits: body.splits,
+  });
+
+  auditLog({
+    action: 'CREATE_TRANSACTION_SPLIT',
+    resource: 'split',
+    resourceId: transactionId,
+    metadata: { source_app: sourceApp, split_count: body.splits.length },
+  });
+
+  return splits;
 }
 
 export async function refundTransaction(

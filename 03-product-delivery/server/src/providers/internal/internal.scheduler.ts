@@ -6,6 +6,7 @@
 
 import { getDb } from '../../database/connection.js';
 import { generateUUID } from '../../shared/utils/uuid.js';
+import { settleSplits } from '../../modules/split/split-settlement.service.js';
 
 let intervalId: ReturnType<typeof setInterval> | null = null;
 
@@ -85,6 +86,11 @@ function processSettlements(): void {
               // Callback failures are handled by the retry scheduler
             });
           }
+
+          // Settle pending splits for this transaction (async, fire and forget)
+          settleSplits(settlement.transaction_id).catch((err) => {
+            console.error(`[scheduler] Split settlement failed for tx ${settlement.transaction_id}:`, (err as Error).message);
+          });
         }
       } catch (err) {
         console.error(`[scheduler] Error processing settlement ${settlement.id}:`, err);

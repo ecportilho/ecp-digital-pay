@@ -33,4 +33,7 @@ export async function apiKeyAuth(request: FastifyRequest, reply: FastifyReply): 
     app_name: app.app_name,
     callback_base_url: app.callback_base_url,
   };
+
+  const idempotencyKey = request.headers['x-idempotency-key'] || '-';
+  console.log(`[ecp-pay] <-- ${request.method} ${request.url} | from=${app.app_name} | idempotency=${idempotencyKey}`);
 }

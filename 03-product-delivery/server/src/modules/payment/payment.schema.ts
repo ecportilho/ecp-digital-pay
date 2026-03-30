@@ -1,5 +1,12 @@
 import { z } from 'zod';
 
+const splitRuleSchema = z.object({
+  account_id: z.string().min(1),
+  account_name: z.string().min(1),
+  amount: z.number().int().positive(),
+  type: z.enum(['fixed', 'percentage']).default('fixed'),
+});
+
 export const pixChargeSchema = z.object({
   amount: z.number().int().positive(),
   customer_name: z.string().min(1),
@@ -8,6 +15,7 @@ export const pixChargeSchema = z.object({
   expiration_seconds: z.number().int().positive().default(3600),
   callback_url: z.string().url().optional(),
   metadata: z.record(z.unknown()).optional(),
+  splits: z.array(splitRuleSchema).min(1).optional(),
 });
 
 export const cardChargeSchema = z.object({
@@ -15,18 +23,19 @@ export const cardChargeSchema = z.object({
   customer_name: z.string().min(1),
   customer_document: z.string().min(11).max(14),
   description: z.string().optional(),
-  card_token: z.string().optional(),
-  card_number: z.string().optional(),
-  card_expiry: z.string().optional(),
-  card_cvv: z.string().optional(),
-  card_holder_name: z.string().optional(),
+  card_token: z.string().nullish(),
+  card_number: z.string().nullish(),
+  card_expiry: z.string().nullish(),
+  card_cvv: z.string().nullish(),
+  card_holder_name: z.string().nullish(),
   save_card: z.boolean().default(false),
   installments: z.number().int().min(1).max(12).default(1),
   callback_url: z.string().url().optional(),
   metadata: z.record(z.unknown()).optional(),
+  splits: z.array(splitRuleSchema).min(1).optional(),
 }).refine(
-  (data) => data.card_token || (data.card_number && data.card_expiry && data.card_cvv && data.card_holder_name),
-  { message: 'Either card_token or full card details (card_number, card_expiry, card_cvv, card_holder_name) are required' }
+  (data) => data.card_token || (data.card_number && data.card_holder_name),
+  { message: 'Either card_token or card_number + card_holder_name are required' }
 );
 
 export const boletoSchema = z.object({
@@ -42,7 +51,14 @@ export const boletoSchema = z.object({
   discount_days: z.number().int().min(0).optional(),
   callback_url: z.string().url().optional(),
   metadata: z.record(z.unknown()).optional(),
+  splits: z.array(splitRuleSchema).min(1).optional(),
 });
+
+export const createTransactionSplitSchema = z.object({
+  splits: z.array(splitRuleSchema).min(1),
+});
+
+export type CreateTransactionSplitBody = z.infer<typeof createTransactionSplitSchema>;
 
 export const refundSchema = z.object({
   amount: z.number().int().positive().optional(),

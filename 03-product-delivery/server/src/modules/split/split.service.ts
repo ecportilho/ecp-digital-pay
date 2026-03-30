@@ -4,6 +4,7 @@ import { generateUUID } from '../../shared/utils/uuid.js';
 import { AppError } from '../../shared/errors/app-error.js';
 import { ErrorCode } from '../../shared/errors/error-codes.js';
 import { auditLog } from '../../shared/utils/audit.js';
+import { settleSplits } from './split-settlement.service.js';
 
 /**
  * Split service — handles payment split logic.
@@ -78,6 +79,11 @@ export async function createSplit(body: CreateSplitBody): Promise<SplitRow[]> {
     resource: 'split',
     resourceId: body.transaction_id,
     metadata: { split_count: body.splits.length, total: totalSplit },
+  });
+
+  // Async settlement — don't block the response
+  settleSplits(body.transaction_id).catch((err) => {
+    console.error(`[split] Settlement failed for tx ${body.transaction_id}:`, (err as Error).message);
   });
 
   return results;

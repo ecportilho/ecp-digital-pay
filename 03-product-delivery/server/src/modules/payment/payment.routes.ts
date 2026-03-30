@@ -1,5 +1,5 @@
 import type { FastifyInstance } from 'fastify';
-import { pixChargeSchema, cardChargeSchema, boletoSchema, refundSchema } from './payment.schema.js';
+import { pixChargeSchema, cardChargeSchema, boletoSchema, refundSchema, createTransactionSplitSchema } from './payment.schema.js';
 import * as paymentService from './payment.service.js';
 import { AppError } from '../../shared/errors/app-error.js';
 import { ErrorCode } from '../../shared/errors/error-codes.js';
@@ -75,6 +75,14 @@ export async function paymentRoutes(app: FastifyInstance): Promise<void> {
     const { id } = request.params as { id: string };
     const body = refundSchema.parse(request.body);
     const result = await paymentService.refundTransaction(id, body, request.sourceApp!.app_name);
+    return reply.status(201).send(result);
+  });
+
+  // POST /pay/transactions/:id/splits — Create splits for an existing transaction
+  app.post('/transactions/:id/splits', async (request, reply) => {
+    const { id } = request.params as { id: string };
+    const body = createTransactionSplitSchema.parse(request.body);
+    const result = await paymentService.createTransactionSplit(id, body, request.sourceApp!.app_name);
     return reply.status(201).send(result);
   });
 }
