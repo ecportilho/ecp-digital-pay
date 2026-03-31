@@ -74,3 +74,43 @@ export async function notifyBankCardPurchase(notification: CardNotification): Pr
     // Non-blocking — payment already succeeded, card notification is best-effort
   }
 }
+
+/**
+ * Notify bank to debit a user's account when a Pix payment is confirmed.
+ * Uses the service account to call POST /api/pix/debit-by-cpf.
+ */
+export async function notifyBankPixDebit(notification: {
+  cpf: string;
+  amount: number;
+  description: string;
+  merchant_name: string;
+  transaction_id: string;
+}): Promise<void> {
+  try {
+    const token = await getBankToken();
+
+    const response = await fetch(`${BANK_API_URL}/api/pix/debit-by-cpf`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+      body: JSON.stringify({
+        cpf: notification.cpf,
+        amountCents: notification.amount,
+        description: notification.description,
+        merchantName: notification.merchant_name,
+      }),
+    });
+
+    if (response.ok) {
+      const result = await response.json() as { transactionId: string; userName: string };
+      console.log(`[bank-notify] Pix debitado | user=${result.userName} | valor=${notification.amount} cents | bankTx=${result.transactionId} | ecpPayTx=${notification.transaction_id}`);
+    } else {
+      const errText = await response.text().catch(() => 'unknown');
+      console.error(`[bank-notify] Falha ao debitar Pix: ${response.status} ${errText}`);
+    }
+  } catch (err) {
+    console.error(`[bank-notify] Erro ao debitar Pix:`, (err as Error).message);
+  }
+}

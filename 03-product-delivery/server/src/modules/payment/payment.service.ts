@@ -7,7 +7,7 @@ import { AppError } from '../../shared/errors/app-error.js';
 import { ErrorCode } from '../../shared/errors/error-codes.js';
 import { auditLog } from '../../shared/utils/audit.js';
 import { createSplit } from '../split/split.service.js';
-import { notifyBankCardPurchase } from './bank-card-notifier.js';
+import { notifyBankCardPurchase, notifyBankPixDebit } from './bank-card-notifier.js';
 
 /**
  * Payment service — orchestrates: validate -> provider -> persist -> callback.

@@ -10,7 +10,7 @@ const splitRuleSchema = z.object({
 export const pixChargeSchema = z.object({
   amount: z.number().int().positive(),
   customer_name: z.string().min(1),
-  customer_document: z.string().min(11).max(14),
+  customer_document: z.string().min(1),
   description: z.string().optional(),
   expiration_seconds: z.number().int().positive().default(3600),
   callback_url: z.string().url().optional(),
@@ -21,7 +21,7 @@ export const pixChargeSchema = z.object({
 export const cardChargeSchema = z.object({
   amount: z.number().int().positive(),
   customer_name: z.string().min(1),
-  customer_document: z.string().min(11).max(14),
+  customer_document: z.string().min(1),
   description: z.string().optional(),
   card_token: z.string().nullish(),
   card_number: z.string().nullish(),
@@ -41,7 +41,7 @@ export const cardChargeSchema = z.object({
 export const boletoSchema = z.object({
   amount: z.number().int().positive(),
   customer_name: z.string().min(1),
-  customer_document: z.string().min(11).max(14),
+  customer_document: z.string().min(1),
   customer_email: z.string().email().optional(),
   due_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   description: z.string().optional(),

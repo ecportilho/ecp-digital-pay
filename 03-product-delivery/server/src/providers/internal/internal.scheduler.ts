@@ -7,6 +7,7 @@
 import { getDb } from '../../database/connection.js';
 import { generateUUID } from '../../shared/utils/uuid.js';
 import { settleSplits } from '../../modules/split/split-settlement.service.js';
+import { notifyBankPixDebit } from '../../modules/payment/bank-card-notifier.js';
 
 let intervalId: ReturnType<typeof setInterval> | null = null;
 
@@ -91,6 +92,20 @@ function processSettlements(): void {
           settleSplits(settlement.transaction_id).catch((err) => {
             console.error(`[scheduler] Split settlement failed for tx ${settlement.transaction_id}:`, (err as Error).message);
           });
+
+          // For Pix payments: debit payer's account in the bank
+          if (tx.type === 'pix') {
+            const txDoc = db.prepare('SELECT customer_document FROM transactions WHERE id = ?').get(tx.id) as { customer_document: string } | undefined;
+            if (txDoc?.customer_document) {
+              notifyBankPixDebit({
+                cpf: txDoc.customer_document,
+                amount: tx.amount,
+                description: `Pix - ${tx.source_app}`,
+                merchant_name: tx.source_app === 'ecp-food' ? 'FoodFlow Delivery' : tx.source_app,
+                transaction_id: tx.id,
+              }).catch(() => {});
+            }
+          }
         }
       } catch (err) {
         console.error(`[scheduler] Error processing settlement ${settlement.id}:`, err);
