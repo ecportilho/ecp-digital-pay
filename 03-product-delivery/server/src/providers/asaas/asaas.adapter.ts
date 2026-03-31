@@ -132,15 +132,22 @@ export class AsaasAdapter implements PaymentProvider {
     const transactionId = generateUUID();
     const customerId = await this.ensureCustomer(input.customer_name, input.customer_document);
 
+    const value = input.amount / 100;
+    const installments = input.installments ?? 1;
     const paymentBody: Record<string, unknown> = {
       customer: customerId,
       billingType: 'CREDIT_CARD',
-      value: input.amount / 100,
+      value,
       description: input.description || 'Pagamento via ECP Pay',
       externalReference: transactionId,
-      installmentCount: input.installments ?? 1,
       dueDate: new Date().toISOString().split('T')[0],
     };
+
+    // Asaas requires installmentCount + installmentValue for installments > 1
+    if (installments > 1) {
+      paymentBody.installmentCount = installments;
+      paymentBody.installmentValue = Math.round((value / installments) * 100) / 100;
+    }
 
     if (input.card_token) {
       paymentBody.creditCardToken = input.card_token;
@@ -156,6 +163,10 @@ export class AsaasAdapter implements PaymentProvider {
       paymentBody.creditCardHolderInfo = {
         name: input.card_holder_name || input.customer_name,
         cpfCnpj: input.customer_document,
+        email: 'pagamento@ecpay.dev',
+        phone: '11999999999',
+        postalCode: '01310100',
+        addressNumber: '100',
       };
     }
 

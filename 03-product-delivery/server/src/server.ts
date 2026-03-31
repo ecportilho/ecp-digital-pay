@@ -1,4 +1,9 @@
-import 'dotenv/config';
+import dotenv from 'dotenv';
+import { resolve } from 'node:path';
+
+// Load .env from project root (03-product-delivery/) — tsx workspaces run from server/
+dotenv.config({ path: resolve(process.cwd(), '.env') });
+dotenv.config({ path: resolve(process.cwd(), '..', '.env') });
 import { buildApp } from './app.js';
 import { getDb } from './database/connection.js';
 import { seed } from './database/seed.js';
