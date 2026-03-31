@@ -59,7 +59,7 @@ export async function seed(): Promise<void> {
   const apps = [
     { name: 'ecp-bank', key: 'ecp-bank-dev-key', url: 'http://localhost:3333/webhooks/pay' },
     { name: 'ecp-emps', key: 'ecp-emps-dev-key', url: 'http://localhost:3334/webhooks/pay' },
-    { name: 'ecp-food', key: 'ecp-food-dev-key', url: 'http://localhost:3000/webhooks/pay' },
+    { name: 'ecp-food', key: 'ecp-food-dev-key', url: 'http://localhost:3000/api/webhooks/ecp-pay/payment-confirmed' },
   ];
 
   const appIds: Record<string, string> = {};
