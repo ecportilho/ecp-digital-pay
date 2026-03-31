@@ -191,7 +191,9 @@ cd "$APP_CWD/web"
 rm -rf dist node_modules/.vite
 
 info "Executando vite build..."
-./node_modules/.bin/vite build 2>&1 | tail -5
+VITE_BIN=$(find "$APP_CWD" -path "*/node_modules/.bin/vite" -type f 2>/dev/null | head -1)
+[ -z "$VITE_BIN" ] && { fail "vite nao encontrado em node_modules"; exit 1; }
+"$VITE_BIN" build 2>&1 | tail -5
 
 if [ ! -f "$APP_CWD/web/dist/index.html" ]; then
     fail "Build falhou — index.html nao encontrado!"
