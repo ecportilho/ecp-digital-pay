@@ -27,10 +27,11 @@ export class AsaasAdapter implements PaymentProvider {
   private apiKey: string;
 
   constructor() {
-    const sandbox = process.env.ASAAS_SANDBOX === 'true';
-    this.baseUrl = sandbox
-      ? 'https://sandbox.asaas.com/api/v3'
-      : 'https://api.asaas.com/v3';
+    this.baseUrl = process.env.ASAAS_BASE_URL || (
+      process.env.ASAAS_SANDBOX === 'true'
+        ? 'https://api-sandbox.asaas.com/v3'
+        : 'https://api.asaas.com/v3'
+    );
     this.apiKey = process.env.ASAAS_API_KEY || '';
   }
 
@@ -46,6 +47,7 @@ export class AsaasAdapter implements PaymentProvider {
         method,
         headers: {
           'Content-Type': 'application/json',
+          'User-Agent': 'ecp-pay/1.0',
           'access_token': this.apiKey,
         },
         body: body ? JSON.stringify(body) : undefined,
