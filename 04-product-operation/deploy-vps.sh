@@ -275,8 +275,14 @@ pm2 delete "$APP_NAME" 2>/dev/null || true
 echo "module.exports={apps:[{name:'${APP_NAME}',script:'${TSX_PATH}',args:'server/src/server.ts',cwd:'${APP_CWD}',instances:1,exec_mode:'fork',env_production:{NODE_ENV:'production',PORT:${APP_PORT},HOST:'127.0.0.1'},max_memory_restart:'512M',max_restarts:10,min_uptime:'10s',restart_delay:4000,kill_timeout:5000,listen_timeout:10000,log_date_format:'YYYY-MM-DD HH:mm:ss Z',merge_logs:true,cron_restart:'0 4 * * *'}]};" > "$APP_CWD/ecosystem.config.cjs"
 
 cd "$APP_CWD"
-NODE_ENV=production pm2 start ecosystem.config.cjs --env production
-ok "Aplicacao iniciada com PM2"
+
+info "Carregando .env e exportando variaveis..."
+set -a
+source "$APP_CWD/.env" 2>/dev/null || true
+set +a
+
+pm2 start ecosystem.config.cjs --env production
+ok "Aplicacao iniciada com PM2 (variaveis do .env exportadas)"
 
 sleep 5
 if pm2 pid "$APP_NAME" > /dev/null 2>&1; then
