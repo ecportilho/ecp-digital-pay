@@ -200,6 +200,149 @@ graph TD
       </div>
     </section>
 
+    <!-- ═══════════════════ SEQUENCE DIAGRAMS ═══════════════════ -->
+    <h2>Diagramas de Sequ&ecirc;ncia</h2>
+    <section class="section">
+
+      <h3>Pagamento Pix &mdash; Fluxo Completo (Internal Provider)</h3>
+      <pre class="mermaid">
+sequenceDiagram
+    participant App as App (ecp-food)
+    participant Pay as ECP Pay API :3335
+    participant Svc as Payment Service
+    participant Prov as Internal Adapter
+    participant DB as SQLite
+
+    App->>Pay: POST /pay/pix
+    Note over Pay: Headers: X-API-Key, X-Idempotency-Key
+
+    Pay->>Pay: Validar API Key (app_registrations)
+    Pay->>DB: SELECT WHERE idempotency_key = ?
+    DB-->>Pay: null (novo)
+
+    Pay->>Svc: createPixPayment(data)
+    Svc->>Prov: ProviderFactory.get("internal")
+    Prov->>Prov: Gerar QR Code + copia-e-cola
+
+    Note over Svc,DB: Transação atômica
+    Svc->>DB: INSERT transactions (status: pending)
+    Svc->>DB: INSERT splits (se definido)
+    DB-->>Svc: transactionId
+
+    Prov->>Prov: Delay configurável (3-5s)
+    Prov->>DB: UPDATE transactions SET status = paid
+
+    Svc->>App: POST callback_url (status: paid)
+    Note over App: Webhook delivery com retry
+
+    Pay-->>App: { id, status: pending, qrCode, copyPaste }
+      </pre>
+
+      <h3>Pagamento Cart&atilde;o &mdash; Provider Asaas (External)</h3>
+      <pre class="mermaid">
+sequenceDiagram
+    participant App as App (ecp-bank)
+    participant Pay as ECP Pay API
+    participant Svc as Payment Service
+    participant Prov as Asaas Adapter
+    participant Asaas as Asaas API
+    participant DB as SQLite
+
+    App->>Pay: POST /pay/card
+    Note over Pay: { amount, card: {number, cvv, ...}, customer }
+
+    Pay->>Pay: Validar API Key + Idempotency
+    Pay->>Svc: createCardPayment(data)
+    Svc->>Prov: ProviderFactory.get("external")
+
+    Prov->>DB: SELECT card_tokens WHERE customer_document
+    alt Cartão novo
+        Prov->>Asaas: POST /payments (card data)
+        Asaas-->>Prov: { id, status, token }
+        Prov->>DB: INSERT card_tokens (token, last4, brand)
+    else Cartão tokenizado
+        Prov->>Asaas: POST /payments (token)
+        Asaas-->>Prov: { id, status }
+    end
+
+    Svc->>DB: INSERT transactions (status: pending)
+
+    Note over Asaas,Pay: Webhook assíncrono
+    Asaas->>Pay: POST /pay/webhooks/asaas
+    Pay->>DB: INSERT webhook_events (dedup event_id)
+    Pay->>DB: UPDATE transactions SET status = paid
+    Pay->>App: POST callback_url (status: paid)
+      </pre>
+
+      <h3>Switch de Provider &mdash; Internal &#x2194; External</h3>
+      <pre class="mermaid">
+sequenceDiagram
+    participant Admin as Admin (Browser)
+    participant Panel as Admin Panel :5176
+    participant API as Admin API
+    participant DB as SQLite
+
+    Admin->>Panel: Abre página Providers
+    Panel->>API: GET /admin/providers
+    API->>DB: SELECT feature_flags WHERE key = PAYMENT_PROVIDER
+    DB-->>API: { value: "internal" }
+    API-->>Panel: { active: "internal", available: ["internal", "external"] }
+    Panel-->>Admin: Two-card com toggle (Internal ativo)
+
+    Admin->>Panel: Clica "Ativar External"
+    Panel-->>Admin: Modal de confirmação
+    Admin->>Panel: Confirma switch
+
+    Panel->>API: POST /admin/providers/switch
+    Note over API: Middleware: requireRole("admin")
+    API->>DB: UPDATE feature_flags SET value = "external"
+    API->>DB: INSERT audit_logs (action: provider_switch)
+    API-->>Panel: { active: "external", switchedAt }
+
+    Panel-->>Admin: Banner atualizado + toast de confirmação
+    Note over Admin: Todas as novas transações usam Asaas
+      </pre>
+
+      <h3>Webhook Delivery &mdash; Retry com Backoff Exponencial</h3>
+      <pre class="mermaid">
+sequenceDiagram
+    participant Pay as ECP Pay
+    participant DB as SQLite
+    participant App as App callback_url
+
+    Note over Pay,App: Status de transação mudou
+
+    Pay->>DB: SELECT callback_url FROM transactions
+    Pay->>App: POST callback_url (attempt 1)
+
+    alt Sucesso (2xx)
+        App-->>Pay: 200 OK
+        Pay->>DB: UPDATE: delivery_status = delivered
+    else Falha (timeout/5xx)
+        App-->>Pay: 500 / timeout
+
+        Note over Pay: Retry 1: aguarda 30s
+        Pay->>App: POST callback_url (attempt 2)
+        App-->>Pay: 500 / timeout
+
+        Note over Pay: Retry 2: aguarda 2min
+        Pay->>App: POST callback_url (attempt 3)
+        App-->>Pay: 500 / timeout
+
+        Note over Pay: Retry 3: aguarda 10min
+        Pay->>App: POST callback_url (attempt 4)
+
+        alt Sucesso
+            App-->>Pay: 200 OK
+            Pay->>DB: UPDATE: delivery_status = delivered
+        else Falha final
+            Pay->>DB: UPDATE: delivery_status = failed
+            Note over Pay: Admin pode fazer retry manual
+        end
+    end
+      </pre>
+    </section>
+
     <!-- API Endpoints -->
     <h2>API Endpoints</h2>
     <section class="section">
@@ -269,6 +412,111 @@ graph TD
         </tbody>
       </table>
     </section>
+
+    <!-- ER Diagram -->
+    <h3>Diagrama Entidade-Relacionamento</h3>
+    <pre class="mermaid">
+erDiagram
+    transactions {
+        TEXT id PK
+        TEXT type "pix|card|boleto"
+        TEXT status "pending|paid|failed|refunded|cancelled"
+        INTEGER amount_cents
+        TEXT source_app FK
+        TEXT idempotency_key UK
+        TEXT provider "internal|asaas"
+        TEXT external_id
+        TEXT callback_url
+        TEXT delivery_status
+        TEXT customer_name
+        TEXT customer_document
+        TEXT metadata
+        TEXT created_at
+    }
+
+    refunds {
+        TEXT id PK
+        TEXT transaction_id FK
+        INTEGER amount_cents
+        TEXT status
+        TEXT reason
+        TEXT created_at
+    }
+
+    card_tokens {
+        TEXT id PK
+        TEXT customer_document
+        TEXT token UK
+        TEXT last4
+        TEXT brand
+        TEXT holder_name
+        INTEGER is_active
+    }
+
+    splits {
+        TEXT id PK
+        TEXT transaction_id FK
+        TEXT account_id
+        INTEGER amount_cents
+        TEXT type "platform|seller|delivery"
+    }
+
+    webhook_events {
+        TEXT id PK
+        TEXT event_id UK
+        TEXT event_type
+        TEXT payload
+        INTEGER processed
+        TEXT transaction_id FK
+        TEXT created_at
+    }
+
+    app_registrations {
+        TEXT id PK
+        TEXT app_name UK
+        TEXT api_key UK
+        TEXT callback_base_url
+        INTEGER is_active
+    }
+
+    admin_users {
+        TEXT id PK
+        TEXT name
+        TEXT email UK
+        TEXT password_hash
+        TEXT role "admin|operator|viewer"
+    }
+
+    feature_flags {
+        TEXT id PK
+        TEXT key UK
+        TEXT value
+        TEXT description
+    }
+
+    audit_logs {
+        TEXT id PK
+        TEXT user_id FK
+        TEXT action
+        TEXT resource
+        TEXT metadata
+        TEXT ip_address
+        TEXT created_at
+    }
+
+    config {
+        TEXT id PK
+        TEXT key UK
+        TEXT value
+        TEXT description
+    }
+
+    transactions ||--o{ refunds : "has"
+    transactions ||--o{ splits : "has"
+    transactions ||--o{ webhook_events : "triggers"
+    app_registrations ||--o{ transactions : "creates"
+    admin_users ||--o{ audit_logs : "performs"
+    </pre>
 
     <!-- Business Rules -->
     <h2>Regras de Negócio</h2>

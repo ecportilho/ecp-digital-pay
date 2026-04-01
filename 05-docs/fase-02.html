@@ -44,6 +44,93 @@
     <h1>Fase 02 &mdash; Product Discovery</h1>
     <p class="subtitle">Priorização de oportunidades, hipóteses de solução, protótipos, backlog estruturado e avaliação de riscos.</p>
 
+    <!-- ═══════════════════ PERSONAS ═══════════════════ -->
+    <h2>Personas Sint&eacute;ticas</h2>
+    <section class="section">
+      <p>3 personas representando os usu&aacute;rios do gateway de pagamentos. Constru&iacute;das com base nos pap&eacute;is de integra&ccedil;&atilde;o, opera&ccedil;&atilde;o e gest&atilde;o do ecossistema ECP.</p>
+
+      <div class="artifact-card" style="border-left: 3px solid var(--lime);">
+        <div class="artifact-label" style="color: var(--lime);">P-01 &mdash; Persona Prim&aacute;ria (MVP)</div>
+        <div class="artifact-title">Diego Moreira, 29 anos &mdash; Dev Full-Stack do Ecossistema ECP</div>
+        <div class="artifact-body">
+          <p><strong>Papel:</strong> Desenvolvedor integrador | <strong>Apps:</strong> ecp-bank, ecp-food | <strong>Experi&ecirc;ncia:</strong> 5 anos TypeScript</p>
+          <p><strong>Contexto:</strong> Precisa integrar pagamentos (Pix, cart&atilde;o, boleto) em cada app do ecossistema. Hoje reimplementa a integra&ccedil;&atilde;o com o Asaas em cada projeto separadamente. Testes dependem de sandbox inst&aacute;vel do gateway externo.</p>
+          <p><strong>Frustra&ccedil;&otilde;es:</strong> Retrabalho a cada novo app. Sandbox do Asaas falha e trava o desenvolvimento. N&atilde;o tem ambiente de staging determin&iacute;stico. Documenta&ccedil;&atilde;o espalhada em m&uacute;ltiplos sistemas.</p>
+          <p><strong>Objetivos:</strong> API &uacute;nica com contrato est&aacute;vel. Modo internal para testes sem depend&ecirc;ncia externa. Onboarding em horas, n&atilde;o semanas.</p>
+          <p style="font-style: italic; color: var(--muted); margin-top: 8px;">&ldquo;Cada vez que crio um app novo no ecossistema, eu reimplemento toda a integra&ccedil;&atilde;o com pagamento do zero. Se tivesse uma API centralizada, eu faria a integra&ccedil;&atilde;o em 1 dia em vez de 1 semana.&rdquo;</p>
+          <p><strong>Oportunidades:</strong> OPP-01, OPP-02, OPP-10, OPP-12 | <strong>KRs:</strong> KR-01, KR-03, KR-04</p>
+        </div>
+      </div>
+
+      <div class="artifact-card" style="border-left: 3px solid var(--lime);">
+        <div class="artifact-label" style="color: var(--lime);">P-02 &mdash; Persona Prim&aacute;ria (MVP)</div>
+        <div class="artifact-title">Patricia Lopes, 33 anos &mdash; Operadora do Ecossistema / DevOps</div>
+        <div class="artifact-body">
+          <p><strong>Papel:</strong> Opera&ccedil;&otilde;es e suporte | <strong>Foco:</strong> Monitorar transa&ccedil;&otilde;es, investigar falhas | <strong>Experi&ecirc;ncia:</strong> 4 anos em ops fintech</p>
+          <p><strong>Contexto:</strong> Respons&aacute;vel por garantir que pagamentos do ecossistema fluam sem problemas. Investiga falhas de transa&ccedil;&atilde;o, reprocessa webhooks e gerencia o provider ativo (internal vs Asaas).</p>
+          <p><strong>Frustra&ccedil;&otilde;es:</strong> Para investigar uma falha, precisa acessar logs em 3 sistemas diferentes. N&atilde;o tem vis&atilde;o unificada do ciclo de vida de uma transa&ccedil;&atilde;o. Sem retry manual de webhooks &mdash; precisa de interven&ccedil;&atilde;o t&eacute;cnica.</p>
+          <p><strong>Objetivos:</strong> Dashboard unificado com KPIs do ecossistema. Timeline completa de cada transa&ccedil;&atilde;o. Retry de webhook com um clique. Alertas de falha em tempo real.</p>
+          <p style="font-style: italic; color: var(--muted); margin-top: 8px;">&ldquo;Quando uma transa&ccedil;&atilde;o falha, eu levo 2 horas pra investigar porque preciso cruzar logs do app, do gateway e dos webhooks. Se tivesse tudo numa timeline, levaria 5 minutos.&rdquo;</p>
+          <p><strong>Oportunidades:</strong> OPP-06, OPP-13, OPP-14 | <strong>KRs:</strong> KR-02, KR-05</p>
+        </div>
+      </div>
+
+      <div class="artifact-card">
+        <div class="artifact-label">P-03 &mdash; Persona Secund&aacute;ria (Ciclo 2)</div>
+        <div class="artifact-title">Ricardo Tavares, 35 anos &mdash; Product Owner / Gestor do Ecossistema</div>
+        <div class="artifact-body">
+          <p><strong>Papel:</strong> Gest&atilde;o de produto | <strong>Foco:</strong> Vis&atilde;o estrat&eacute;gica, m&eacute;tricas, custos | <strong>Experi&ecirc;ncia:</strong> 8 anos em produtos digitais</p>
+          <p><strong>Contexto:</strong> Toma decis&otilde;es sobre provider (interno vs Asaas), monitora volume de transa&ccedil;&otilde;es e custos. Precisa de vis&atilde;o consolidada do ecossistema para planejar evolu&ccedil;&otilde;es.</p>
+          <p><strong>Frustra&ccedil;&otilde;es:</strong> N&atilde;o tem vis&atilde;o do volume de transa&ccedil;&otilde;es por app. N&atilde;o sabe quanto custa cada transa&ccedil;&atilde;o real vs simulada. Sem auditoria de quem fez o qu&ecirc; no painel admin.</p>
+          <p><strong>Objetivos:</strong> Dashboard com m&eacute;tricas do ecossistema. Auditoria completa de a&ccedil;&otilde;es. Controle de provider com hist&oacute;rico de switches.</p>
+          <p style="font-style: italic; color: var(--muted); margin-top: 8px;">&ldquo;Eu preciso saber exatamente quantas transa&ccedil;&otilde;es reais vs simuladas passam pelo gateway, qual o volume por app, e quanto estou pagando de taxa ao Asaas. Hoje eu n&atilde;o tenho nenhuma dessas vis&otilde;es.&rdquo;</p>
+          <p><strong>Oportunidades:</strong> OPP-06, OPP-08, OPP-09 | <strong>KRs:</strong> KR-02, KR-05</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════ INSIGHTS ═══════════════════ -->
+    <h2>Insights Principais</h2>
+    <section class="section">
+      <p>6 insights extra&iacute;dos da an&aacute;lise do ecossistema ECP, benchmarks de gateways (Stripe, Adyen, PagSeguro) e dores operacionais reais.</p>
+
+      <div class="artifact-card">
+        <div class="artifact-label">INS-01 &mdash; Confian&ccedil;a alta</div>
+        <div class="artifact-title">Reimplementar integra&ccedil;&atilde;o de pagamento em cada app &eacute; o maior gargalo de velocidade</div>
+        <div class="artifact-body">Cada novo app no ecossistema gasta 1&ndash;2 semanas integrando com gateway. Uma API unificada com contrato est&aacute;vel reduz esse tempo para horas. O Provider Pattern permite que apps n&atilde;o saibam qual gateway est&aacute; ativo.</div>
+      </div>
+
+      <div class="artifact-card">
+        <div class="artifact-label">INS-02 &mdash; Confian&ccedil;a alta</div>
+        <div class="artifact-title">Depend&ecirc;ncia de sandbox externo trava o ciclo de desenvolvimento</div>
+        <div class="artifact-body">Sandbox do Asaas falha intermitentemente. Testes de pagamento ficam indetermin&iacute;sticos. Modo Internal com simula&ccedil;&atilde;o determin&iacute;stica elimina 100% da depend&ecirc;ncia externa em dev/staging.</div>
+      </div>
+
+      <div class="artifact-card">
+        <div class="artifact-label">INS-03 &mdash; Confian&ccedil;a alta</div>
+        <div class="artifact-title">Investiga&ccedil;&atilde;o de falhas exige cruzar dados em m&uacute;ltiplos sistemas</div>
+        <div class="artifact-body">Operadores precisam acessar logs do app, gateway e banco para investigar uma falha. TransactionTimeline unificada (request &rarr; gateway &rarr; webhook &rarr; callback) reduz investiga&ccedil;&atilde;o de horas para minutos.</div>
+      </div>
+
+      <div class="artifact-card">
+        <div class="artifact-label">INS-04 &mdash; Confian&ccedil;a alta</div>
+        <div class="artifact-title">Retries sem idempot&ecirc;ncia causam cobran&ccedil;as duplicadas</div>
+        <div class="artifact-body">Falhas de rede em produ&ccedil;&atilde;o levam apps a reenviar requests. Sem idempotency_key, o gateway cria transa&ccedil;&otilde;es duplicadas. Padr&atilde;o Stripe: X-Idempotency-Key obrigat&oacute;rio + UNIQUE constraint no banco.</div>
+      </div>
+
+      <div class="artifact-card">
+        <div class="artifact-label">INS-05 &mdash; Confian&ccedil;a m&eacute;dia</div>
+        <div class="artifact-title">Webhooks n&atilde;o entregues silenciosamente comprometem a confiabilidade</div>
+        <div class="artifact-body">Quando um callback falha, apps downstream ficam com status desatualizado. Retry autom&aacute;tico com backoff exponencial + retry manual via painel admin garante entrega eventual.</div>
+      </div>
+
+      <div class="artifact-card">
+        <div class="artifact-label">INS-06 &mdash; Confian&ccedil;a m&eacute;dia</div>
+        <div class="artifact-title">Painel admin density-first (inspira&ccedil;&atilde;o Stripe) &eacute; o padr&atilde;o para ferramentas operacionais</div>
+        <div class="artifact-body">Operadores de pagamento precisam de densidade de informa&ccedil;&atilde;o, n&atilde;o de est&eacute;tica consumer. Dashboards Stripe/Datadog s&atilde;o a refer&ecirc;ncia: filtros poderosos, tabelas densas, detalhes expans&iacute;veis, timeline correlacionada.</div>
+      </div>
+    </section>
+
     <!-- Prioritized Opportunities -->
     <h2>Oportunidades Priorizadas (WSJF)</h2>
     <section class="section">
