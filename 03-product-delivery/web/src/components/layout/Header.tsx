@@ -13,7 +13,7 @@ export function Header({ title }: HeaderProps) {
   const mode = providerData?.provider?.mode || 'internal';
 
   return (
-    <header className="flex items-center justify-between px-8 py-4 border-b border-border bg-secondary-bg min-h-[60px]">
+    <header className="flex items-center justify-between px-8 lg:pl-10 lg:pr-10 py-4 border-b border-border bg-secondary-bg min-h-[60px]">
       <h1 className="text-lg font-semibold">{title}</h1>
       <div className="flex items-center gap-4">
         <div className="flex items-center gap-2">

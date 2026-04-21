@@ -55,7 +55,7 @@ function ProtectedLayout() {
       <div className="flex-1 lg:ml-60 flex flex-col min-h-screen">
         <Header title={pageTitle} />
         <InternalBanner />
-        <main className="flex-1 p-7 overflow-y-auto pb-20 lg:pb-7">
+        <main className="flex-1 p-7 lg:pl-10 lg:pr-10 overflow-y-auto pb-20 lg:pb-7">
           <Outlet />
         </main>
       </div>
