@@ -135,10 +135,23 @@ async function deliverCallback(tx: TransactionRow): Promise<void> {
     metadata: tx.metadata ? JSON.parse(tx.metadata) : undefined,
   };
 
+  // Include the source app's API key in the callback so receivers can authenticate
+  // the webhook. The receiver should validate the X-API-Key header against its own
+  // configured value (it's the same shared secret used for outbound requests).
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+  try {
+    const app = db
+      .prepare('SELECT api_key FROM app_registrations WHERE app_name = ? AND is_active = 1')
+      .get(tx.source_app) as { api_key?: string } | undefined;
+    if (app?.api_key) headers['X-API-Key'] = app.api_key;
+  } catch {
+    // non-fatal — receiver will reject if it requires the header
+  }
+
   try {
     const response = await fetch(tx.callback_url, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers,
       body: JSON.stringify(payload),
       signal: AbortSignal.timeout(10_000),
     });
