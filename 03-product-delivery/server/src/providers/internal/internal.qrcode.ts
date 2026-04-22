@@ -38,12 +38,17 @@ function tlv(id: string, value: string): string {
 export function generatePixQrCode(
   transactionId: string,
   amount: number,
-  merchantName: string = 'ECP Pay'
+  merchantName: string = 'ECP Pay',
+  merchantPixKey?: string
 ): PixQrCodeData {
   const amountStr = (amount / 100).toFixed(2);
 
+  // Chave Pix real do recebedor (ex.: CPF). Fallback no transactionId
+  // mantém compat com chamadas antigas, mas esse BRCode não será pagável.
+  const pixKey = merchantPixKey && merchantPixKey.trim() ? merchantPixKey.trim() : transactionId;
+
   // Merchant Account Info (campo 26) contém sub-TLVs
-  const merchantAccount = tlv('00', 'BR.GOV.BCB.PIX') + tlv('01', transactionId);
+  const merchantAccount = tlv('00', 'BR.GOV.BCB.PIX') + tlv('01', pixKey);
   // Additional Data (campo 62) contém sub-TLV com txid (05)
   const additionalData = tlv('05', transactionId);
 
