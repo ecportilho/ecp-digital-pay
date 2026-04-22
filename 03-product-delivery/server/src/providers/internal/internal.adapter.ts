@@ -16,7 +16,6 @@ import { getDb } from '../../database/connection.js';
 import { generateUUID } from '../../shared/utils/uuid.js';
 import { generatePixQrCode } from './internal.qrcode.js';
 import { generateBoleto } from './internal.boleto.js';
-import { scheduleSettlement } from './internal.scheduler.js';
 import { AppError } from '../../shared/errors/app-error.js';
 import { ErrorCode } from '../../shared/errors/error-codes.js';
 
@@ -56,8 +55,9 @@ export class InternalAdapter implements PaymentProvider {
       qrCode, qrCodeText, expiration,
     );
 
-    // Schedule automatic settlement
-    scheduleSettlement(transactionId, this.simulationDelay);
+    // Nao agendamos auto-settle pra Pix — aguarda notificacao externa do bank
+    // via POST /pay/internal/pix-settled quando o usuario pagar via copia-e-cola.
+    // Caso deseje simular, chame o endpoint manualmente.
 
     return {
       transaction_id: transactionId,

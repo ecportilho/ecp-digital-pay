@@ -33,6 +33,85 @@ interface TransactionRow {
  * Process all pending settlements that are due.
  * Called periodically by the interval timer.
  */
+/**
+ * Settle a single transaction by ID. Extraído do scheduler para ser reusável
+ * pelo endpoint externo (POST /pay/internal/pix-settled).
+ *
+ * Atualiza transaction pra 'completed', registra webhook event, entrega
+ * callback ao source_app e processa splits. Para Pix, OPCIONALMENTE debita
+ * no bank — omitido quando o débito já aconteceu externamente (ex.: o user
+ * pagou via copia-e-cola no bank, que credita direto a plataforma).
+ */
+export function settleTransaction(
+  transactionId: string,
+  opts: { skipBankDebit?: boolean } = {}
+): boolean {
+  const db = getDb();
+
+  // Atualiza status (idempotente via WHERE status='pending')
+  const updateResult = db.prepare(
+    `UPDATE transactions SET status = 'completed', completed_at = datetime('now'), updated_at = datetime('now')
+     WHERE id = ? AND status = 'pending'`
+  ).run(transactionId);
+
+  if (updateResult.changes === 0) {
+    // Já processada ou inexistente
+    return false;
+  }
+
+  const tx = db.prepare(
+    'SELECT id, source_app, provider_id, type, amount, status, callback_url, metadata FROM transactions WHERE id = ?'
+  ).get(transactionId) as TransactionRow | undefined;
+
+  if (!tx) return false;
+
+  // Webhook event interno
+  const eventId = generateUUID();
+  db.prepare(
+    `INSERT INTO webhook_events (id, event_id, provider, event_type, transaction_id, payload, processed)
+     VALUES (?, ?, 'internal', 'payment_confirmed', ?, ?, 1)`
+  ).run(
+    generateUUID(),
+    eventId,
+    transactionId,
+    JSON.stringify({
+      event: 'payment.completed',
+      transaction_id: tx.id,
+      type: tx.type,
+      amount: tx.amount,
+      status: 'completed',
+      source_app: tx.source_app,
+      timestamp: new Date().toISOString(),
+    }),
+  );
+
+  // Callback ao source_app (fire-and-forget; retry scheduler lida com falhas)
+  if (tx.callback_url) {
+    deliverCallback(tx).catch(() => {});
+  }
+
+  // Splits (fire-and-forget)
+  settleSplits(transactionId).catch((err) => {
+    console.error(`[settle] Split settlement failed for tx ${transactionId}:`, (err as Error).message);
+  });
+
+  // Pix: debitar payer no bank (skip se já debitado externamente)
+  if (tx.type === 'pix' && !opts.skipBankDebit) {
+    const txDoc = db.prepare('SELECT customer_document FROM transactions WHERE id = ?').get(tx.id) as { customer_document: string } | undefined;
+    if (txDoc?.customer_document) {
+      notifyBankPixDebit({
+        cpf: txDoc.customer_document,
+        amount: tx.amount,
+        description: `Pix - ${tx.source_app}`,
+        merchant_name: tx.source_app === 'ecp-food' ? 'FoodFlow Delivery' : tx.source_app,
+        transaction_id: tx.id,
+      }).catch(() => {});
+    }
+  }
+
+  return true;
+}
+
 function processSettlements(): void {
   try {
     const db = getDb();
@@ -45,68 +124,27 @@ function processSettlements(): void {
 
     for (const settlement of pendingSettlements) {
       try {
-        // Update transaction to completed
-        db.prepare(
-          `UPDATE transactions SET status = 'completed', completed_at = datetime('now'), updated_at = datetime('now')
-           WHERE id = ? AND status = 'pending'`
-        ).run(settlement.transaction_id);
+        // Checa tipo antes de settlar: Pix NÃO é auto-settled pelo scheduler.
+        // Pix aguarda notificação externa do bank (POST /pay/internal/pix-settled)
+        // que o usuário de fato pagou via copia-e-cola.
+        const tx = db.prepare(
+          'SELECT type FROM transactions WHERE id = ?'
+        ).get(settlement.transaction_id) as { type: string } | undefined;
 
-        // Mark settlement as processed
+        if (tx?.type === 'pix') {
+          // Marca settlement como processado pra não ficar looping, mas NÃO
+          // toca na transação — ela permanece 'pending' até confirmação externa.
+          db.prepare(
+            'UPDATE scheduled_settlements SET settled = 1 WHERE id = ?'
+          ).run(settlement.id);
+          continue;
+        }
+
+        // Não-Pix: segue o fluxo normal
+        settleTransaction(settlement.transaction_id);
         db.prepare(
           'UPDATE scheduled_settlements SET settled = 1 WHERE id = ?'
         ).run(settlement.id);
-
-        // Insert a webhook event for internal tracking
-        const tx = db.prepare(
-          'SELECT id, source_app, provider_id, type, amount, status, callback_url, metadata FROM transactions WHERE id = ?'
-        ).get(settlement.transaction_id) as TransactionRow | undefined;
-
-        if (tx) {
-          const eventId = generateUUID();
-          db.prepare(
-            `INSERT INTO webhook_events (id, event_id, provider, event_type, transaction_id, payload, processed)
-             VALUES (?, ?, 'internal', 'payment_confirmed', ?, ?, 1)`
-          ).run(
-            generateUUID(),
-            eventId,
-            settlement.transaction_id,
-            JSON.stringify({
-              event: 'payment.completed',
-              transaction_id: tx.id,
-              type: tx.type,
-              amount: tx.amount,
-              status: 'completed',
-              source_app: tx.source_app,
-              timestamp: new Date().toISOString(),
-            }),
-          );
-
-          // Schedule callback delivery (async, fire and forget)
-          if (tx.callback_url) {
-            deliverCallback(tx).catch(() => {
-              // Callback failures are handled by the retry scheduler
-            });
-          }
-
-          // Settle pending splits for this transaction (async, fire and forget)
-          settleSplits(settlement.transaction_id).catch((err) => {
-            console.error(`[scheduler] Split settlement failed for tx ${settlement.transaction_id}:`, (err as Error).message);
-          });
-
-          // For Pix payments: debit payer's account in the bank
-          if (tx.type === 'pix') {
-            const txDoc = db.prepare('SELECT customer_document FROM transactions WHERE id = ?').get(tx.id) as { customer_document: string } | undefined;
-            if (txDoc?.customer_document) {
-              notifyBankPixDebit({
-                cpf: txDoc.customer_document,
-                amount: tx.amount,
-                description: `Pix - ${tx.source_app}`,
-                merchant_name: tx.source_app === 'ecp-food' ? 'FoodFlow Delivery' : tx.source_app,
-                transaction_id: tx.id,
-              }).catch(() => {});
-            }
-          }
-        }
       } catch (err) {
         console.error(`[scheduler] Error processing settlement ${settlement.id}:`, err);
       }

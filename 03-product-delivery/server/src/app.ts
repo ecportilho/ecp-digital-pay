@@ -7,6 +7,7 @@ import { adminAuth } from './shared/middleware/admin-auth.js';
 import { rateLimiter } from './shared/middleware/rate-limiter.js';
 import { paymentRoutes } from './modules/payment/payment.routes.js';
 import { cardVaultRoutes } from './modules/card-vault/card-vault.routes.js';
+import { internalRoutes } from './modules/internal/internal.routes.js';
 import { webhookRoutes } from './modules/webhook/webhook.routes.js';
 import { healthRoutes } from './modules/health/health.routes.js';
 import { adminAuthRoutes } from './modules/admin/admin-auth.routes.js';
@@ -49,6 +50,7 @@ export async function buildApp() {
 
     await payApp.register(paymentRoutes);
     await payApp.register(cardVaultRoutes);
+    await payApp.register(internalRoutes);
   }, { prefix: '/pay' });
 
   // --- Admin routes (JWT auth) ---
