@@ -64,8 +64,10 @@ export const internalRoutes: FastifyPluginAsync = async (app) => {
     // Persiste referência ao bank_transaction_id (rastreabilidade)
     if (bank_transaction_id) {
       db.prepare(
-        'UPDATE transactions SET metadata = json_patch(COALESCE(metadata, "{}"), ?) WHERE id = ?'
-      ).run(JSON.stringify({ bank_transaction_id }), tx.id);
+        `UPDATE transactions
+         SET metadata = json_set(COALESCE(metadata, '{}'), '$.bank_transaction_id', ?)
+         WHERE id = ?`
+      ).run(bank_transaction_id, tx.id);
     }
 
     // skipBankDebit=true: o bank já fez o débito via copia-e-cola
