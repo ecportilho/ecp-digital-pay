@@ -24,25 +24,38 @@ function calculateCRC16(payload: string): string {
 }
 
 /**
- * Generate a mock Pix EMV QR code payload.
- * Format follows the BR Code structure (mock), but CRC16 é real
- * para que scanners e parsers (bank copia-e-cola) aceitem o payload.
+ * Helper TLV (Type-Length-Value) do padrão EMV: id (2) + length (2) + value.
+ * length é decimal zero-padded. Evita bug de length hardcoded errado.
+ */
+function tlv(id: string, value: string): string {
+  return id + value.length.toString().padStart(2, '0') + value;
+}
+
+/**
+ * Generate a Pix EMV QR code payload com CRC16 real (padrão Bacen).
+ * Cada campo tem length calculado automaticamente via tlv().
  */
 export function generatePixQrCode(transactionId: string, amount: number): PixQrCodeData {
   const amountStr = (amount / 100).toFixed(2);
-  const payloadWithoutCrc = [
-    '00020126',                                       // Payload Format Indicator
-    `580014BR.GOV.BCB.PIX0136${transactionId}`,       // Merchant Account (PIX key = txId)
-    '52040000',                                       // Merchant Category Code
-    '5303986',                                        // Transaction Currency (986 = BRL)
-    `54${amountStr.length.toString().padStart(2, '0')}${amountStr}`, // Transaction Amount
-    '5802BR',                                         // Country Code
-    '6014Sao Paulo SP',                               // Merchant City
-    `62${(4 + transactionId.length).toString().padStart(2, '0')}05${transactionId.length.toString().padStart(2, '0')}${transactionId}`, // Additional Data
-  ].join('');
+
+  // Merchant Account Info (campo 26) contém sub-TLVs
+  const merchantAccount = tlv('00', 'BR.GOV.BCB.PIX') + tlv('01', transactionId);
+  // Additional Data (campo 62) contém sub-TLV com txid (05)
+  const additionalData = tlv('05', transactionId);
+
+  const payloadWithoutCrc =
+    tlv('00', '01') +            // Payload Format Indicator
+    tlv('01', '11') +            // Point of Initiation (11 = estático — mas como tem valor fixo, seria 12; mantemos 11 por compat mock)
+    tlv('26', merchantAccount) + // Merchant Account Info
+    tlv('52', '0000') +          // Merchant Category Code
+    tlv('53', '986') +           // Transaction Currency (986 = BRL)
+    tlv('54', amountStr) +       // Transaction Amount
+    tlv('58', 'BR') +            // Country Code
+    tlv('60', 'Sao Paulo SP') +  // Merchant City (length 12, calculado)
+    tlv('62', additionalData);   // Additional Data
 
   // Campo 63 (CRC16) — padrão Bacen exige como último campo.
-  // "6304" = ID do campo + length (4 chars hex); calcula CRC sobre todo o resto incluindo "6304".
+  // CRC calculado sobre o payload inteiro + "6304" (ID/length do próprio CRC).
   const withCrcPrefix = payloadWithoutCrc + '6304';
   const crc = calculateCRC16(withCrcPrefix);
   const qrCodeText = withCrcPrefix + crc;
