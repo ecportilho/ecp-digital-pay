@@ -39,7 +39,7 @@ export class InternalAdapter implements PaymentProvider {
     const expiration = new Date(Date.now() + expirationSeconds * 1000).toISOString();
 
     // Generate QR code
-    const { qrCode, qrCodeText } = generatePixQrCode(transactionId, input.amount, input.customer_name, input.customer_document);
+    const { qrCode, qrCodeText } = await generatePixQrCode(transactionId, input.amount, input.customer_name, input.customer_document);
 
     // Store transaction in DB
     const db = getDb();
@@ -169,7 +169,7 @@ export class InternalAdapter implements PaymentProvider {
     const { barcode, digitableLine } = generateBoleto(transactionId, input.amount, input.due_date);
 
     // Generate embedded Pix QR for boleto
-    const { qrCode: pixQr, qrCodeText: pixCopyPaste } = generatePixQrCode(transactionId, input.amount, input.customer_name, input.customer_document);
+    const { qrCode: pixQr, qrCodeText: pixCopyPaste } = await generatePixQrCode(transactionId, input.amount, input.customer_name, input.customer_document);
 
     // Store transaction
     const db = getDb();

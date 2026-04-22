@@ -1,11 +1,13 @@
 /**
  * Local QR Code generator for Pix in INTERNAL mode.
- * Generates mock Pix QR code data (not a real Pix payload).
+ * Payload EMV compliant + CRC16 real + imagem PNG real (lib qrcode).
  */
 
+import QRCode from 'qrcode';
+
 export interface PixQrCodeData {
-  qrCode: string;       // base64 encoded image (placeholder)
-  qrCodeText: string;   // pix copia e cola text
+  qrCode: string;       // data URL da imagem PNG do QR code
+  qrCodeText: string;   // pix copia e cola text (EMV payload)
 }
 
 /**
@@ -35,12 +37,12 @@ function tlv(id: string, value: string): string {
  * Generate a Pix EMV QR code payload com CRC16 real (padrão Bacen).
  * Cada campo tem length calculado automaticamente via tlv().
  */
-export function generatePixQrCode(
+export async function generatePixQrCode(
   transactionId: string,
   amount: number,
   merchantName: string = 'ECP Pay',
   merchantPixKey?: string
-): PixQrCodeData {
+): Promise<PixQrCodeData> {
   const amountStr = (amount / 100).toFixed(2);
 
   // Chave Pix real do recebedor (ex.: CPF). Fallback no transactionId
@@ -77,7 +79,12 @@ export function generatePixQrCode(
   const crc = calculateCRC16(withCrcPrefix);
   const qrCodeText = withCrcPrefix + crc;
 
-  const qrCode = Buffer.from(`ECPPAY-PIX-QR:${qrCodeText}`).toString('base64');
+  // Data URL PNG (renderizável direto em <img src>)
+  const qrCode = await QRCode.toDataURL(qrCodeText, {
+    errorCorrectionLevel: 'M',
+    margin: 1,
+    width: 320,
+  });
 
   return { qrCode, qrCodeText };
 }
