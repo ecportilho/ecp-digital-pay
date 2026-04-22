@@ -35,7 +35,11 @@ function tlv(id: string, value: string): string {
  * Generate a Pix EMV QR code payload com CRC16 real (padrão Bacen).
  * Cada campo tem length calculado automaticamente via tlv().
  */
-export function generatePixQrCode(transactionId: string, amount: number): PixQrCodeData {
+export function generatePixQrCode(
+  transactionId: string,
+  amount: number,
+  merchantName: string = 'ECP Pay'
+): PixQrCodeData {
   const amountStr = (amount / 100).toFixed(2);
 
   // Merchant Account Info (campo 26) contém sub-TLVs
@@ -43,15 +47,23 @@ export function generatePixQrCode(transactionId: string, amount: number): PixQrC
   // Additional Data (campo 62) contém sub-TLV com txid (05)
   const additionalData = tlv('05', transactionId);
 
+  // Sanitiza merchant name: ASCII-only, max 25 chars (limite Bacen), sem caracteres de controle
+  const safeMerchantName = merchantName
+    .normalize('NFD').replace(/[̀-ͯ]/g, '')
+    .replace(/[^\x20-\x7E]/g, '')
+    .slice(0, 25)
+    .trim() || 'ECP Pay';
+
   const payloadWithoutCrc =
     tlv('00', '01') +            // Payload Format Indicator
-    tlv('01', '11') +            // Point of Initiation (11 = estático — mas como tem valor fixo, seria 12; mantemos 11 por compat mock)
+    tlv('01', '11') +            // Point of Initiation (11 = estático)
     tlv('26', merchantAccount) + // Merchant Account Info
     tlv('52', '0000') +          // Merchant Category Code
     tlv('53', '986') +           // Transaction Currency (986 = BRL)
     tlv('54', amountStr) +       // Transaction Amount
     tlv('58', 'BR') +            // Country Code
-    tlv('60', 'Sao Paulo SP') +  // Merchant City (length 12, calculado)
+    tlv('59', safeMerchantName) +// Merchant Name (obrigatório Bacen)
+    tlv('60', 'Sao Paulo SP') +  // Merchant City
     tlv('62', additionalData);   // Additional Data
 
   // Campo 63 (CRC16) — padrão Bacen exige como último campo.
